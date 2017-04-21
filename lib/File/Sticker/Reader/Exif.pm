@@ -58,18 +58,18 @@ sub known_fields {
     my $self = shift;
 
     return {
-        url=>1,
-        creator=>1,
-        title=>1,
-        description=>1,
-        tags=>1};
+        title=>'TEXT',
+        url=>'TEXT',
+        creator=>'TEXT',
+        description=>'TEXT',
+        tags=>'MULTI'};
 } # known_fields
 
 =head2 read_meta
 
 Read the meta-data from the given file.
 
-    my %meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta(filename=>$filename);
 
 =cut
 
@@ -144,7 +144,7 @@ sub read_meta {
         } # if $val
     } # for each key
 
-    return %meta;
+    return \%meta;
 } # read_meta
 
 =cut

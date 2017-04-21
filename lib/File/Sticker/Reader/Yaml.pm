@@ -70,7 +70,7 @@ sub known_fields {
 
 Read the meta-data from the given file.
 
-    my %meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta(filename=>$filename);
 
 =cut
 
@@ -122,7 +122,7 @@ sub read_meta {
     {
         $meta{tags} .= ",private";
     }
-    return %meta;
+    return \%meta;
 } # read_meta
 
 =cut

@@ -58,11 +58,11 @@ sub known_fields {
     my $self = shift;
 
     return {
-        url=>1,
-        creator=>1,
-        title=>1,
-        description=>1,
-        tags=>1};
+        title=>'TEXT',
+        creator=>'TEXT',
+        description=>'TEXT',
+        url=>'TEXT',
+        tags=>'MULTI'};
 } # known_fields
 
 =head1 Helper Functions

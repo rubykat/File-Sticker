@@ -49,6 +49,8 @@ Other fields will be called whatever the user has pre-configured.
 
 use common::sense;
 use File::LibMagic;
+use Path::Tiny;
+use POSIX qw(strftime);
 
 =head1 METHODS
 
@@ -192,7 +194,7 @@ Read the meta-data from the given file.
 
 This must be overridden by the specific reader class.
 
-    my %meta = $obj->read_meta(filename=>$filename);
+    my $meta = $reader->read_meta(filename=>$filename);
 
 =cut
 
@@ -202,7 +204,52 @@ sub read_meta {
 
 } # read_meta
 
+=head1 Helper Functions
+
+Private interface
+
+=head2 derive_values
+
+Derive common values from the existing meta-data.
+
+    $reader->derive_values(filename=>$filename,
+        meta=>$meta);
+
 =cut
+
+sub derive_values {
+    my $self = shift;
+    my %args = @_;
+
+    my $filename = $args{filename};
+    my $meta = $args{meta};
+
+    my $fp = path($filename);
+    $meta->{file} = $fp->realpath->stringify;
+    $meta->{basename} = $fp->basename->stringify;
+    $meta->{name} = $fp->basename(qr/\.\w+/)->stringify;
+    if ($self->{topdir})
+    {
+        $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
+
+        # Make this grouping stuff simple:
+        # take it as the *directory* where the file is;
+        # this is because that's how it is *grouped* together with other files, yes?
+        # But use the directory relative to the "top" directory, the first two or three parts of it.
+
+        my $dir = $fp->relative($self->{topdir})->parent->stringify;
+        $dir =~ s!^/!!; # remove the leading /
+        my @bits = split(/\//, $dir);
+        splice(@bits,3);
+        $meta->{grouping} = join(' ', @bits);
+    }
+    my $stat = $fp->stat;
+    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
+    $meta->{filesize} = $stat->size;
+
+    $meta->{alt_title} = $meta->{title} if !$meta->{alt_title};
+    return $meta;
+} # derive_values
 
 =head1 BUGS
 

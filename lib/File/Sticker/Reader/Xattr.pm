@@ -69,7 +69,7 @@ sub known_fields {
 
 Read the meta-data from the given file.
 
-    my %meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta(filename=>$filename);
 
 =cut
 
@@ -82,7 +82,7 @@ sub read_meta {
     my %meta = ();
     foreach my $key (listfattr($filename))
     {
-        if ($key eq 'dublincore.source')
+        if ($key eq 'dublincore.source' or $key eq 'xdg.referrer.url')
         {
             $meta{url} = getfattr($filename, $key);
         }
@@ -94,6 +94,10 @@ sub read_meta {
         {
             $meta{title} = getfattr($filename, $key);
         }
+        elsif ($key eq 'dublincore.alternative')
+        {
+            $meta{alt_title} = getfattr($filename, $key);
+        }
         elsif ($key eq 'dublincore.description')
         {
             $meta{description} = getfattr($filename, $key);
@@ -104,7 +108,7 @@ sub read_meta {
         }
     }
 
-    return %meta;
+    return \%meta;
 } # read_meta
 
 =cut

@@ -19,6 +19,7 @@ And update a database with that information.
 
 use common::sense;
 use File::Sticker::Reader;
+use Hash::Merge;
 use Module::Pluggable instantiate => 'new',
 search_path => ['File::Sticker::Reader'],
 sub_name => 'readers';
@@ -41,24 +42,33 @@ sub new {
     my %parameters = (@_);
     my $self = bless ({%parameters}, ref ($class) || $class);
 
-    # ---------------------------------------
-    # Readers
-    # find out what readers are available
-    $self->{read_pri} = {};
-    my @readers = $self->readers();
-    foreach my $fe (@readers)
+    if (!exists $self->{fields_wanted})
     {
-	my $priority = $fe->priority();
-	my $name = $fe->name();
-	if ($self->{debug})
-	{
-	    print STDERR "reader=$name($priority)\n";
-	}
-	if (!exists $self->{read_pri}->{$priority})
-	{
-	    $self->{read_pri}->{$priority} = [];
-	}
-	push @{$self->{read_pri}->{$priority}}, $fe;
+        # use default
+        $self->{fields_wanted} = {
+            file => 'TEXT',
+            title => 'TEXT',
+            description => 'TEXT',
+            url => 'TEXT',
+            date => 'TEXT',
+            creator => 'TEXT',
+            tags => 'MULTI',
+        };
+    }
+    # -------------------------------------
+    # Readers
+    my @readers = $self->readers();
+    foreach my $rd (@readers)
+    {
+	$rd->init(fields_wanted=>$self->{fields_wanted});
+    }
+
+    # -------------------------------------
+    # Writers
+    my @writers = $self->writers();
+    foreach my $wt (@writers)
+    {
+	$wt->init(fields_wanted=>$self->{fields_wanted});
     }
 
     return ($self);
@@ -66,7 +76,9 @@ sub new {
 
 =head2 read_meta
 
-    my %info = $fs->read_meta(filename=>$filename);
+This will read the meta-data from the file, using all possible ways.
+
+    my $info = $fs->read_meta(filename=>$filename);
 
 =cut
 sub read_meta ($%) {
@@ -75,32 +87,26 @@ sub read_meta ($%) {
 	filename=>undef,
 	@_
     );
+    my $filename = $args{filename};
 
-    my $reader;
-    my $first_url = $args{urls}[0];
-    foreach my $pri (reverse sort keys %{$self->{read_pri}})
+    if (!-r $filename)
     {
-	foreach my $fe (@{$self->{read_pri}->{$pri}})
-	{
-	    if ($fe->allow($first_url))
-	    {
-		$reader = $fe;
-		warn "reader($pri): ", $fe->name(), "\n" if $args{verbose};
-		last;
-	    }
-	}
-	if (defined $reader)
-	{
-	    last;
-	}
-    }
-    if (defined $reader)
-    {
-	$reader->init(%{$self});
-	return $reader->read(%args);
+        return undef;
     }
 
-    return undef;
+    my $merge = Hash::Merge->new();
+    my $meta = {};
+    foreach my $reader (@{$self->readers()})
+    {
+        if ($reader->allow($filename))
+        {
+            my $info = $reader->read_meta($filename);
+            my $newmeta = $merge->merga($meta, $info);
+            $meta = $newmeta;
+        }
+    }
+
+    return $meta;
 } # read_meta
 
 =head1 BUGS

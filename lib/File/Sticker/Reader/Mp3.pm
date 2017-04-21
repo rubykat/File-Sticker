@@ -58,20 +58,20 @@ sub known_fields {
     my $self = shift;
 
     return {
-        title=>1,
-        creator=>1,
-        author=>1,
-        description=>1,
-        song=>1,
-        url=>1,
-        tags=>1};
+        title=>'TEXT',
+        creator=>'TEXT',
+        author=>'TEXT',
+        description=>'TEXT',
+        song=>'TEXT',
+        url=>'TEXT',
+        tags=>'MULTI'};
 } # known_fields
 
 =head2 read_meta
 
 Read the meta-data from the given file.
 
-    my %meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta(filename=>$filename);
 
 =cut
 
@@ -161,7 +161,7 @@ sub read_meta {
         $meta{tags} = join(',', @tags);
     }
 
-    return %meta;
+    return \%meta;
 } # read_meta
 
 =cut
