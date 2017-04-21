@@ -65,21 +65,126 @@ sub known_fields {
         tags=>1};
 } # known_fields
 
-=head2 write_meta
+=head1 Helper Functions
 
-Write the meta-data to the given file.
+Private interface.
 
-    $obj->write_meta(filename=>$filename, meta=>\%meta);
+=head2 replace_one_field
+
+Overwrite the given field. This does no checking.
+
+    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
-sub write_meta {
+sub replace_one_field {
     my $self = shift;
     my %args = @_;
-
     my $filename = $args{filename};
+    my $field = $args{field};
+    my $value = $args{value};
 
-} # write_meta
+    my $ft = $self->{file_magic}->info_from_filename($filename);
+    my $et = new Image::ExifTool;
+    $et->Options(ListSep=>',',ListSplit=>',');
+
+    my $success;
+    if ($field eq 'url')
+    {
+        $success = $et->SetNewValue('Source', $value);
+    }
+    elsif ($field eq 'creator')
+    {
+        $success = $et->SetNewValue('Creator', $value);
+    }
+    elsif ($field eq 'title')
+    {
+        $success = $et->SetNewValue('Title', $value);
+    }
+    elsif ($field eq 'description')
+    {
+        if ($ft->{mime_type} =~ /image\jpeg/)
+        {
+            $success = $et->SetNewValue('Comment', $value);
+        }
+        else
+        {
+            $success = $et->SetNewValue('Description', $value);
+        }
+    }
+    elsif ($field eq 'tags')
+    {
+        if (ref $value eq 'ARRAY')
+        {
+            $success = $et->SetNewValue('Keywords', $value);
+        }
+        else
+        {
+            my @tags = split(/,/,$value);
+            $success = $et->SetNewValue('Keywords', \@tags);
+        }
+    }
+
+    if ($success)
+    {
+        $et->WriteInfo($filename);
+    }
+    return $success;
+} # replace_one_field
+
+=head2 delete_one_field
+
+Completely remove the given field. This does no checking.
+
+    $writer->delete_one_field(filename=>$filename,field=>$field);
+
+=cut
+
+sub delete_one_field {
+    my $self = shift;
+    my %args = @_;
+    my $filename = $args{filename};
+    my $field = $args{field};
+
+    my $ft = $self->{file_magic}->info_from_filename($filename);
+    my $et = new Image::ExifTool;
+    $et->Options(ListSep=>',',ListSplit=>',');
+
+    my $success;
+    if ($field eq 'url')
+    {
+        $success = $et->SetNewValue('Source');
+    }
+    elsif ($field eq 'creator')
+    {
+        $success = $et->SetNewValue('Creator')
+    }
+    elsif ($field eq 'title')
+    {
+        $success = $et->SetNewValue('Title')
+    }
+    elsif ($field eq 'description')
+    {
+        if ($ft->{mime_type} =~ /image\/jpeg/)
+        {
+            $success = $et->SetNewValue('Comment');
+        }
+        else
+        {
+            $success = $et->SetNewValue('Description');
+        }
+    }
+    elsif ($field eq 'tags')
+    {
+        $success = $et->SetNewValue('Keywords');
+    }
+
+    if ($success)
+    {
+        $et->WriteInfo($filename);
+    }
+    return $success;
+} # delete_one_field
 
 =cut
 

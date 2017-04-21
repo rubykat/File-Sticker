@@ -67,20 +67,6 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head2 write_meta
-
-Write the meta-data to the given file.
-
-    $obj->write_meta(filename=>$filename,meta=>\%meta);
-
-=cut
-
-sub write_meta {
-    my $self = shift;
-    my %args = @_;
-
-} # write_meta
-
 =head1 Helper Functions
 
 Private interface.

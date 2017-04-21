@@ -8,9 +8,9 @@ File::Sticker::Writer - write and standardize meta-data from files
 
     use File::Sticker::Writer;
 
-    my $obj = File::Sticker::Writer->new(%args);
+    my $writer = File::Sticker::Writer->new(%args);
 
-    my %meta = $obj->write_meta(%args);
+    $writer->write_meta(%args);
 
 =head1 DESCRIPTION
 
@@ -157,22 +157,6 @@ sub known_fields {
 
     return undef;
 } # known_fields
-
-=head2 write_meta
-
-Write the meta-data to the given file.
-
-This must be overridden by the specific writer class.
-
-    $writer->write_meta(filename=>$filename,meta=>\%meta);
-
-=cut
-
-sub write_meta {
-    my $self = shift;
-    my %args = @_;
-
-} # write_meta
 
 =head2 add_multival_to_file 
 

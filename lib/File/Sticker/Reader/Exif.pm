@@ -79,7 +79,9 @@ sub read_meta {
 
     my $filename = $args{filename};
 
-    my $info = ImageInfo($filename);
+    my $et = new Image::ExifTool;
+    $et->Options(ListSep=>',');
+    my $info = $et->ImageInfo($filename);
     my %meta = ();
     my $is_gutenberg_book = 0;
     if ($info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
@@ -112,7 +114,7 @@ sub read_meta {
             {
                 $meta{'description'} = $val;
             }
-            elsif ($key eq 'Keywords' or $key eq 'Subject')
+            elsif ($key =~ /keywords|subject/i)
             {
                 my @tags;
                 if ($is_gutenberg_book)

@@ -58,11 +58,12 @@ sub known_fields {
     my $self = shift;
 
     return {
-        url=>1,
-        creator=>1,
-        author=>1,
         title=>1,
         description=>1,
+        creator=>1,
+        author=>1,
+        song=>1,
+        url=>1,
         tags=>1};
 } # known_fields
 
@@ -84,41 +85,112 @@ sub write_meta {
 
 =cut
 
-=head2 add_tag_to_mp3
+=head2 replace_one_field
 
-This will only set freeform tags.
+Overwrite the given field. This does no checking.
 
-$writer->add_tag_to_mp3($filename,$tag);
+    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
-sub add_tag_to_mp3 ($$$) {
-    my $self = shift;
-    my $fullname = shift;
-    my $tag = shift;
 
-    my $mp3 = MP3::Tag->new($fullname);
+sub replace_one_field {
+    my $self = shift;
+    my %args = @_;
+    my $filename = $args{filename};
+    my $field = $args{field};
+    my $value = $args{value};
+
+    my $mp3 = MP3::Tag->new($filename);
     $mp3->config(write_v24=>1);
 
-    # add a new tag to existing tags
-    my %th = ();
-    $th{$tag} = 1;
-
-    if ($mp3->have_id3v2_frame('TXXX', [qw(tags)]))
+    if ($field eq 'title')
     {
-        my $tagframe = $mp3->select_id3v2_frame('TXXX', [qw(tags)], undef);
-        my @oldtags = split(/,/, $tagframe);
-        foreach my $t (@oldtags)
-        {
-            $th{$t} = 1;
-        }
+        $mp3->album_set($value);
     }
-    my @newtags = keys %th;
-    @newtags = sort @newtags;
-    my $newtags = join(',', @newtags);
-    $mp3->select_id3v2_frame_by_descr('TXXX[tags]', $newtags);
-
+    elsif ($field eq 'song')
+    {
+        $mp3->title_set($value);
+    }
+    elsif ($field eq 'description')
+    {
+        $mp3->comment_set($value);
+    }
+    elsif ($field eq 'creator')
+    {
+        $mp3->artist_set($value);
+    }
+    elsif ($field eq 'author')
+    {
+        # use the 'composer' field
+        $mp3->select_id3v2_frame_by_descr('TCOM', $value);
+    }
+    elsif ($field eq 'url')
+    {
+        # official audio file webpage
+        $mp3->select_id3v2_frame_by_descr('WOAF', $value);
+    }
+    elsif ($field eq 'tags')
+    {
+        my $newtags = $value;
+        if (ref $value eq 'ARRAY')
+        {
+            $newtags = join(',', @{$value});
+        }
+        $mp3->select_id3v2_frame_by_descr('TXXX[tags]', $newtags);
+    }
     $mp3->update_tags();
-} # add_tag_to_mp3
+} # replace_one_field
+
+=head2 delete_one_field
+
+Remove the given field. This does no checking.
+This doesn't completely remove it, merely sets it to the empty string.
+
+    $writer->delete_one_field(filename=>$filename,field=>$field);
+
+=cut
+
+sub delete_one_field {
+    my $self = shift;
+    my %args = @_;
+    my $filename = $args{filename};
+    my $field = $args{field};
+
+    my $mp3 = MP3::Tag->new($filename);
+    $mp3->config(write_v24=>1);
+
+    if ($field eq 'title')
+    {
+        $mp3->album_set('');
+    }
+    elsif ($field eq 'song')
+    {
+        $mp3->title_set('');
+    }
+    elsif ($field eq 'description')
+    {
+        $mp3->comment_set('');
+    }
+    elsif ($field eq 'creator')
+    {
+        $mp3->artist_set('');
+    }
+    elsif ($field eq 'author')
+    {
+        # use the 'composer' field
+        $mp3->select_id3v2_frame_by_descr('TCOM', '');
+    }
+    elsif ($field eq 'url')
+    {
+        # official audio file webpage
+        $mp3->select_id3v2_frame_by_descr('WOAF', '');
+    }
+    elsif ($field eq 'tags')
+    {
+        $mp3->select_id3v2_frame_by_descr('TXXX[tags]', '');
+    }
+    $mp3->update_tags();
+} # delete_one_field
 
 =head1 BUGS
 

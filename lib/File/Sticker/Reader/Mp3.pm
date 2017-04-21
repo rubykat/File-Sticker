@@ -58,11 +58,12 @@ sub known_fields {
     my $self = shift;
 
     return {
-        url=>1,
+        title=>1,
         creator=>1,
         author=>1,
-        title=>1,
         description=>1,
+        song=>1,
+        url=>1,
         tags=>1};
 } # known_fields
 
@@ -84,10 +85,11 @@ sub read_meta {
     my %meta = ();
 
     # album => dublincore.title
+    # title => song
     # artist => dublincore.creator
     # comment => dublincore.description
-    # Skip the following fields: track, song, title
-    # the rest go into tags
+    # Skip the following fields: track
+    # The following fields go into tags: genre, year
     my $comment;
     my $info = $mp3->autoinfo(1);
     my @tags = ();
@@ -98,6 +100,10 @@ sub read_meta {
         {
             $meta{'title'} = $val->[0];
         }
+        elsif ($key =~ /song|title/)
+        {
+            $meta{'song'} = $val->[0];
+        }
         elsif ($key eq 'artist')
         {
             $meta{'creator'} = $val->[0];
@@ -106,8 +112,9 @@ sub read_meta {
         {
             $meta{'description'} = $val->[0];
         }
-        elsif ($key =~ /track|song|title/)
+        elsif ($key =~ /track/)
         {
+            # skip
         }
         else
         {

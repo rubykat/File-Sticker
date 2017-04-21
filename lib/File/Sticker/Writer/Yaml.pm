@@ -21,7 +21,7 @@ nomenclature, such as "tags" for things called tags, or Keywords or Subject etc.
 
 use common::sense;
 use File::LibMagic;
-use YAML::Any qw(Dump LoadFile);
+use YAML::Any qw(Dump LoadFile DumpFile);
 
 use parent qw(File::Sticker::Writer);
 
@@ -66,21 +66,48 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head2 write_meta
+=head1 Helper Functions
 
-Write the meta-data to the given file.
+Private interface.
 
-    $writer->write_meta(filename=>$filename, meta=>\%meta);
+=head2 replace_one_field
+
+Overwrite the given field. This does no checking.
+
+    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
-sub write_meta {
+sub replace_one_field {
     my $self = shift;
     my %args = @_;
-
     my $filename = $args{filename};
+    my $field = $args{field};
+    my $value = $args{value};
 
-} # write_meta
+    my ($info) = LoadFile($filename);
+    $info->{$field} = $value;
+    DumpFile($filename, $info);
+} # replace_one_field
+
+=head2 delete_one_field
+
+Completely remove the given field. This does no checking.
+
+    $writer->delete_one_field(filename=>$filename,field=>$field);
+
+=cut
+
+sub delete_one_field {
+    my $self = shift;
+    my %args = @_;
+    my $filename = $args{filename};
+    my $field = $args{field};
+
+    my ($info) = LoadFile($filename);
+    delete $info->{$field};
+    DumpFile($filename, $info);
+} # delete_one_field
 
 =cut
 
