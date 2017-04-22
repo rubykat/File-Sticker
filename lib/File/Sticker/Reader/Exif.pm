@@ -10,7 +10,7 @@ File::Sticker::Reader::Exif - read and standardize meta-data from EXIF file
 
     my $obj = File::Sticker::Reader::Exif->new(%args);
 
-    my %meta = $obj->read_meta(%args);
+    my %meta = $obj->read_meta($filename);
 
 =head1 DESCRIPTION
 
@@ -25,6 +25,9 @@ use Image::ExifTool qw(:Public);
 
 use parent qw(File::Sticker::Reader);
 
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
+
 =head1 METHODS
 
 =head2 allowed_file
@@ -37,10 +40,12 @@ File must be one of: an image, PDF, or EPUB.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} =~ /(image|pdf|epub)/)
     {
+        say STDERR 'Reader ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;
@@ -69,15 +74,14 @@ sub known_fields {
 
 Read the meta-data from the given file.
 
-    my $meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta($filename);
 
 =cut
 
 sub read_meta {
     my $self = shift;
-    my %args = @_;
-
-    my $filename = $args{filename};
+    my $filename = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $et = new Image::ExifTool;
     $et->Options(ListSep=>',');
@@ -102,7 +106,7 @@ sub read_meta {
                     $meta{'url'} = $info->{'Identifier'};
                 }
             }
-            elsif ($key =~ /creator|artist|author/i)
+            elsif ($key eq 'Creator')
             {
                 $meta{'creator'} = $val;
             }

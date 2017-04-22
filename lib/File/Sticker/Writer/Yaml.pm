@@ -25,18 +25,29 @@ use YAML::Any qw(Dump LoadFile DumpFile);
 
 use parent qw(File::Sticker::Writer);
 
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
+
 =head1 METHODS
 
 =head2 allowed_file
 
 If this writer can be used for the given file, then this returns true.
 File must be plain text and end with '.yml'
+Howwever, if the file DOES NOT EXIST, it CAN be WRITTEN TO, so return true then as well.
+This is the only case where the file doesn't need to exist beforehand.
 
 =cut
 
 sub allowed_file {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    if (!-f $file)
+    {
+        return 1;
+    }
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'text/plain'
@@ -46,6 +57,24 @@ sub allowed_file {
     }
     return 0;
 } # allowed_file
+
+=head2 allowed_fields
+
+If this writer can be used for the known and wanted fields, then this returns true.
+For YAML, this always returns true.
+
+    if ($writer->allowed_fields())
+    {
+	....
+    }
+
+=cut
+
+sub allowed_fields {
+    my $self = shift;
+
+    return 1;
+} # allowed_fields
 
 =head2 known_fields
 
@@ -66,6 +95,48 @@ sub known_fields {
     return {};
 } # known_fields
 
+=head2 delete_one_field
+
+Completely remove the given field.
+This does no checking for multi-valued fields, it just deletes the whole thing.
+
+    $writer->delete_one_field(filename=>$filename,field=>$field);
+
+=cut
+
+sub delete_one_field {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    my $field = $args{field};
+
+    my ($info) = LoadFile($filename);
+    delete $info->{$field};
+    DumpFile($filename, $info);
+} # delete_one_field
+
+=head2 replace_all_meta
+
+Overwrite the existing meta-data with that given.
+
+(This supercedes the parent method because we can do it more efficiently this way)
+
+    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
+
+=cut
+
+sub replace_all_meta {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    my $meta = $args{meta};
+
+    DumpFile($filename, $meta);
+} # replace_all_meta
 =head1 Helper Functions
 
 Private interface.
@@ -81,6 +152,8 @@ Overwrite the given field. This does no checking.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
     my $filename = $args{filename};
     my $field = $args{field};
     my $value = $args{value};
@@ -90,24 +163,6 @@ sub replace_one_field {
     DumpFile($filename, $info);
 } # replace_one_field
 
-=head2 delete_one_field
-
-Completely remove the given field. This does no checking.
-
-    $writer->delete_one_field(filename=>$filename,field=>$field);
-
-=cut
-
-sub delete_one_field {
-    my $self = shift;
-    my %args = @_;
-    my $filename = $args{filename};
-    my $field = $args{field};
-
-    my ($info) = LoadFile($filename);
-    delete $info->{$field};
-    DumpFile($filename, $info);
-} # delete_one_field
 
 =cut
 

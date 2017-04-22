@@ -10,7 +10,7 @@ File::Sticker::Reader::Xattr - read and standardize meta-data from ExtAttr file
 
     my $obj = File::Sticker::Reader::Xattr->new(%args);
 
-    my %meta = $obj->read_meta(%args);
+    my %meta = $obj->read_meta($filename);
 
 =head1 DESCRIPTION
 
@@ -25,6 +25,9 @@ use File::ExtAttr ':all';
 
 use parent qw(File::Sticker::Reader);
 
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
+
 =head1 METHODS
 
 =head2 allowed_file
@@ -38,9 +41,11 @@ I don't know how to test for that, so I'll just assume "yes".
 sub allowed_file {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     if (-f $file)
     {
+        say STDERR 'Reader ' . $self->name() . ' allows any filetype ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;
@@ -69,15 +74,14 @@ sub known_fields {
 
 Read the meta-data from the given file.
 
-    my $meta = $obj->read_meta(filename=>$filename);
+    my $meta = $obj->read_meta($filename);
 
 =cut
 
 sub read_meta {
     my $self = shift;
-    my %args = @_;
-
-    my $filename = $args{filename};
+    my $filename = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my %meta = ();
     foreach my $key (listfattr($filename))

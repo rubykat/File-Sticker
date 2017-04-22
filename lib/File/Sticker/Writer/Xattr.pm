@@ -23,9 +23,11 @@ use common::sense;
 use File::LibMagic;
 use File::ExtAttr ':all';
 use File::Basename;
-use String::CamelCase qw(wordsplit);
 
 use parent qw(File::Sticker::Writer);
+
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
@@ -40,6 +42,7 @@ I don't know how to test for that, so I'll just assume "yes".
 sub allowed_file {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     if (-f $file)
     {
@@ -47,6 +50,24 @@ sub allowed_file {
     }
     return 0;
 } # allowed_file
+
+=head2 allowed_fields
+
+If this writer can be used for the known and wanted fields, then this returns true.
+For Xattr, this always returns true.
+
+    if ($writer->allowed_fields())
+    {
+	....
+    }
+
+=cut
+
+sub allowed_fields {
+    my $self = shift;
+
+    return 1;
+} # allowed_fields
 
 =head2 known_fields
 
@@ -67,37 +88,10 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head1 Helper Functions
-
-Private interface.
-
-=cut
-
-=head2 replace_one_field
-
-Overwrite the given field. This does no checking.
-
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
-
-=cut
-
-sub replace_one_field {
-    my $self = shift;
-    my %args = @_;
-
-    my $filename = $args{filename};
-    my $fname = $args{field};
-    my $value = $args{value};
-
-    if (-w $filename)
-    {
-        setfattr($filename, $fname, $value);
-    }
-} # replace_one_field
-
 =head2 delete_one_field
 
-Completely remove the given field. This does no checking.
+Completely remove the given field.
+For multi-value fields, it removes ALL the values.
 
     $writer->delete_one_field(filename=>$filename,field=>$field);
 
@@ -106,154 +100,171 @@ Completely remove the given field. This does no checking.
 sub delete_one_field {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
     my $filename = $args{filename};
     my $field = $args{field};
 
     if (-w $filename)
     {
-        delfattr($filename, $field);
-    }
-} # delete_one_field
-
-=head2 add_field_to_file
-
-Add a general field to a file
-
-    $writer->add_field_to_file(filename=>$filename,
-        value=>$value,
-        field=>$field_name);
-=cut
-sub add_field_to_file ($%) {
-    my $self = shift;
-    my %args = @_;
-    my $filename = $args{path};
-    my $field = $args{field};
-    my $value = $args{value};
-
-    if ($field eq 'tags' or $field eq 'private_tags')
-    {
-        # replace undesirable characters in tag values
-        $value =~ s/[:.]/-/g;
-        my $prefix = '';
-        if ($value =~ /^([=-])(.*)/)
+        if ($field eq 'url')
         {
-            $prefix = $1;
-            $value = $2;
+            delfattr($filename, 'dublincore.source');
         }
-        if ($prefix eq '=')
+        elsif ($field eq 'title')
         {
-            # use tags==val to reset the tags
-            setfattr($filename, $field, $value);
+            delfattr($filename, 'dublincore.title');
+        }
+        elsif ($field eq 'alt_title')
+        {
+            delfattr($filename, 'dublincore.alternative');
+        }
+        elsif ($field eq 'creator')
+        {
+            delfattr($filename, 'dublincore.creator');
+        }
+        elsif ($field eq 'description')
+        {
+            delfattr($filename, 'dublincore.description');
         }
         else
         {
-            # allow for multiple values, comma-separated
-            my @vals = ($value);
-            if ($value =~ /,/)
-            {
-                @vals = split(/,/, $value);
-            }
-            foreach my $v (@vals)
-            {
-                if ($prefix eq '-')
-                {
-                    $self->delete_multival_from_file(
-                        filename=>$filename,
-                        name=>$field,
-                        value=>$v);
-                }
-                else
-                {
-                    $self->add_multival_to_file(
-                        filename=>$filename,
-                        name=>$field,
-                        value=>$v);
-                }
-            }
+            delfattr($filename, $field);
         }
     }
-    elsif ($field eq 'url')
-    {
-        setfattr($filename, 'dublincore.source', $value);
-    }
-    elsif ($field eq 'title')
-    {
-        if (!$value and $self->{derive})
-        {
-            $value = $self->derive_title($filename);
-        }
-        setfattr($filename, 'dublincore.title', $value);
-    }
-    elsif ($field eq 'description')
-    {
-        setfattr($filename, 'dublincore.description', $value);
-    }
-    else
-    {
-        setfattr($filename, $field, $value);
-    }
+} # delete_one_field
 
-} # add_field_to_file
+=head2 replace_all_meta
 
-=head2 delete_field_from_file
+Overwrite the existing meta-data with that given.
 
-Delete a whole field.
+(This supercedes the parent method because we can do it more efficiently this way)
 
-    $writer->delete_field_from_file(filename=>$filename,
-        field=>$field_name);
+    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
 
 =cut
-sub delete_field_from_file ($%) {
+
+sub replace_all_meta {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
     my $filename = $args{filename};
-    my $field = $args{field};
+    my $meta = $args{meta};
 
-    if ($field eq 'tag')
+    # write all the meta
+    foreach my $field (sort keys %{$meta})
     {
-        delfattr($filename, 'tags');
+        if (exists $meta->{$field}
+                and defined $meta->{$field})
+        {
+            $self->replace_one_field(filename=>$filename,
+                field=>$field,
+                value=>$meta->{$field});
+        }
+        else # not defined, remove it
+        {
+            $self->delete_one_field(filename=>$filename,field=>$field);
+        }
     }
-    if ($field eq 'url')
+    # delete the stuff that isn't in the replacement data
+    foreach my $key (listfattr($filename))
     {
-        delfattr($filename, 'dublincore.source');
-    }
-    elsif ($field eq 'title')
-    {
-        delfattr($filename, 'dublincore.title');
-    }
-    elsif ($field eq 'description')
-    {
-        delfattr($filename, 'dublincore.description');
-    }
-    elsif ($field eq 'thumb_ext')
-    {
-        delfattr($filename, 'xfile.thumb_ext');
-    }
-    else
-    {
-        delfattr($filename, $field);
-    }
+        if ($key eq 'dublincore.source')
+        {
+            if (!exists $meta->{url})
+            {
+                delfattr($filename, $key);
+            }
+        }
+        elsif ($key eq 'dublincore.creator')
+        {
+            if (!exists $meta->{creator})
+            {
+                delfattr($filename, $key);
+            }
+        }
+        elsif ($key eq 'dublincore.title')
+        {
+            if (!exists $meta->{title})
+            {
+                delfattr($filename, $key);
+            }
+        }
+        elsif ($key eq 'dublincore.alternative')
+        {
+            if (!exists $meta->{alt_title})
+            {
+                delfattr($filename, $key);
+            }
+        }
+        elsif ($key eq 'dublincore.description')
+        {
+            if (!exists $meta->{description})
+            {
+                delfattr($filename, $key);
+            }
+        }
+        elsif (!exists $meta->{$key})
+        {
+            delfattr($filename, $key);
+        }
 
-} # delete_field_from_file
+    }
+} # replace_all_meta
 
-=head2 derive_title
+=head1 Helper Functions
 
-Derive the title from the filename.
-
-    my $title = $writer->derive_title($filename);
+Private interface.
 
 =cut
-sub derive_title($$) {
-    my $self = shift;
-    my $filename = shift;
 
-    my ($bn, $path, $suffix) = fileparse($filename, qr/\.[^.]*/);
-    my @words = wordsplit($bn);
-    my $title = join(' ', @words);
-    $title =~ s/(\w+)/\u\L$1/g; # title case
-    $title =~ s/(\d+)$/ $1/; # trailing numbers
-    return $title;
-} # derive_title
+=head2 replace_one_field
+
+Overwrite the given field.
+This does no checking for multi-value fields.
+
+    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+
+=cut
+
+sub replace_one_field {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    my $field = $args{field};
+    my $value = $args{value};
+
+    if (-w $filename)
+    {
+        if ($field eq 'url')
+        {
+            setfattr($filename, 'dublincore.source', $value);
+        }
+        elsif ($field eq 'title')
+        {
+            setfattr($filename, 'dublincore.title', $value);
+        }
+        elsif ($field eq 'alt_title')
+        {
+            setfattr($filename, 'dublincore.alternative', $value);
+        }
+        elsif ($field eq 'creator')
+        {
+            setfattr($filename, 'dublincore.creator', $value);
+        }
+        elsif ($field eq 'description')
+        {
+            setfattr($filename, 'dublincore.description', $value);
+        }
+        else
+        {
+            setfattr($filename, $field, $value);
+        }
+    }
+} # replace_one_field
 
 =head1 BUGS
 

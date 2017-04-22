@@ -10,7 +10,7 @@ File::Sticker::Reader - read and standardize meta-data from files
 
     my $obj = File::Sticker::Reader->new(%args);
 
-    my %meta = $obj->read_meta(%args);
+    my $meta = $obj->read_meta($filename);
 
 =head1 DESCRIPTION
 
@@ -51,6 +51,9 @@ use common::sense;
 use File::LibMagic;
 use Path::Tiny;
 use POSIX qw(strftime);
+
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
@@ -113,7 +116,7 @@ sub name {
 =head2 allow
 
 If this reader can be used for the given file, and the wanted_fields then this returns true.
-Returns false if there are no 'wanted_fields'!
+Returns TRUE if there are no wanted_fields.
 
     if ($reader->allow($file))
     {
@@ -125,6 +128,7 @@ Returns false if there are no 'wanted_fields'!
 sub allow {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $okay = $self->allowed_file($file);
     if ($okay) # okay so far
@@ -144,10 +148,6 @@ sub allow {
                     last;
                 }
             }
-        }
-        else
-        {
-            $okay = 0;
         }
     }
     return $okay;
@@ -194,13 +194,13 @@ Read the meta-data from the given file.
 
 This must be overridden by the specific reader class.
 
-    my $meta = $reader->read_meta(filename=>$filename);
+    my $meta = $reader->read_meta($filename);
 
 =cut
 
 sub read_meta {
     my $self = shift;
-    my %args = @_;
+    my $filename = shift;
 
 } # read_meta
 
@@ -220,6 +220,7 @@ Derive common values from the existing meta-data.
 sub derive_values {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};

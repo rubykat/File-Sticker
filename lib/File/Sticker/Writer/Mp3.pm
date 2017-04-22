@@ -25,6 +25,9 @@ use MP3::Tag;
 
 use parent qw(File::Sticker::Writer);
 
+# FOR DEBUGGING
+sub whoami  { ( caller(1) )[3] }
+
 =head1 METHODS
 
 =head2 allowed_file
@@ -37,6 +40,7 @@ File must be an MP3 file.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'audio/mpeg')
@@ -82,6 +86,8 @@ Overwrite the given field. This does no checking.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
     my $filename = $args{filename};
     my $field = $args{field};
     my $value = $args{value};
@@ -139,6 +145,8 @@ This doesn't completely remove it, merely sets it to the empty string.
 sub delete_one_field {
     my $self = shift;
     my %args = @_;
+    say STDERR whoami() if $self->{verbose} > 2;
+
     my $filename = $args{filename};
     my $field = $args{field};
 
