@@ -40,7 +40,7 @@ File must be plain text and end with '.yml'
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'text/plain'
@@ -82,7 +82,7 @@ Read the meta-data from the given file.
 sub read_meta {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
     my ($info) = LoadFile($filename);
     my %meta = ();

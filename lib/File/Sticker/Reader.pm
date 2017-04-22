@@ -128,7 +128,7 @@ Returns TRUE if there are no wanted_fields.
 sub allow {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
     my $okay = $self->allowed_file($file);
     if ($okay) # okay so far
@@ -220,7 +220,7 @@ Derive common values from the existing meta-data.
 sub derive_values {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};

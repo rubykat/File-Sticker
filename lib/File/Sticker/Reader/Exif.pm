@@ -40,7 +40,7 @@ File must be one of: an image, PDF, or EPUB.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$file" if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} =~ /(image|pdf|epub)/)
@@ -67,6 +67,7 @@ sub known_fields {
         url=>'TEXT',
         creator=>'TEXT',
         description=>'TEXT',
+        location=>'TEXT',
         tags=>'MULTI'};
 } # known_fields
 
@@ -81,11 +82,9 @@ Read the meta-data from the given file.
 sub read_meta {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
-    my $et = new Image::ExifTool;
-    $et->Options(ListSep=>',');
-    my $info = $et->ImageInfo($filename);
+    my $info = ImageInfo($filename);
     my %meta = ();
     my $is_gutenberg_book = 0;
     if ($info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
@@ -95,6 +94,7 @@ sub read_meta {
     foreach my $key (sort keys %{$info})
     {
         my $val = $info->{$key};
+        $val =~ s/\n$//; # remove trailing newlines
         if ($val)
         {
             if ($key eq 'Source')
@@ -114,11 +114,15 @@ sub read_meta {
             {
                 $meta{'title'} = $val;
             }
+            elsif ($key eq 'Location')
+            {
+                $meta{'location'} = $val;
+            }
             elsif ($key =~ /comment|description/i)
             {
                 $meta{'description'} = $val;
             }
-            elsif ($key =~ /keywords|subject/i)
+            elsif ($key eq 'Keywords' or ($is_gutenberg_book and $key eq 'Subject'))
             {
                 my @tags;
                 if ($is_gutenberg_book)
@@ -130,10 +134,14 @@ sub read_meta {
                     $val =~ s/\s--\s/,/g;
                     @tags = split(/,\s?/, $val);
                 }
+                else
+                {
+                    @tags = split(/,\s*/, $val);
+                }
 
                 if ($meta{tags})
                 {
-                    push @tags, split(/,/, $meta{tags}); # don't forget previous ones
+                    push @tags, split(/,\s*/, $meta{tags}); # don't forget previous ones
                 }
                 my %tagdup = (); # remove any duplicates
                 foreach my $t (@tags)

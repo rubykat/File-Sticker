@@ -87,7 +87,7 @@ This will read the meta-data from the file, using all possible ways.
 sub read_meta ($%) {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
     if (!-r $filename)
     {
@@ -95,7 +95,11 @@ sub read_meta ($%) {
         return {};
     }
 
-    my $merge = Hash::Merge->new();
+    # Set the merge to RIGHT_PRECEDENT because
+    # both Xattr and Yaml support more values
+    # and they also both come at the end of the alphabet
+    # so therefore, give the later (rightmost) hashes precedence.
+    my $merge = Hash::Merge->new('RIGHT_PRECEDENT');
     my $meta = {};
     foreach my $reader (@{$self->{_readers}})
     {
@@ -103,10 +107,9 @@ sub read_meta ($%) {
         {
             print STDERR "Reader ", $reader->name(), " can read $filename\n" if $self->{verbose} > 1;
             my $info = $reader->read_meta($filename);
-            print STDERR "INFO: ", Dump($info), "\n" if $self->{verbose} > 1;
             my $newmeta = $merge->merge($meta, $info);
             $meta = $newmeta;
-            print STDERR "MERGED: ", Dump($meta), "\n" if $self->{verbose} > 1;
+            print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
         }
     }
 
@@ -126,7 +129,7 @@ Add the contents of the given field to the file, taking into account multi-value
 sub add_field_to_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -164,7 +167,7 @@ For multi-value fields, it removes ALL the values.
 sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -173,7 +176,7 @@ sub delete_field_from_file {
     {
         if ($writer->allow($filename))
         {
-            print STDERR "Writer ", $writer->name(), "can write $filename\n" if $self->{verbose} > 1;
+            print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
             $writer->delete_field_from_file(
                 filename=>$filename,
                 field=>$field);
@@ -192,21 +195,24 @@ Overwrite the existing meta-data with that given.
 sub replace_all_meta {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};
 
+    my $okay = 0;
     foreach my $writer (@{$self->{_writers}})
     {
         if ($writer->allow($filename))
         {
-            print STDERR "Writer ", $writer->name(), "can write $filename\n" if $self->{verbose} > 1;
+            print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
+            $okay = 1;
             $writer->replace_all_meta(
                 filename=>$filename,
                 meta=>$meta);
         }
     }
+    return $okay;
 } # replace_all_meta
 
 =head1 BUGS

@@ -42,7 +42,7 @@ This is the only case where the file doesn't need to exist beforehand.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
     if (!-f $file)
     {
@@ -107,7 +107,7 @@ This does no checking for multi-valued fields, it just deletes the whole thing.
 sub delete_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -130,7 +130,7 @@ Overwrite the existing meta-data with that given.
 sub replace_all_meta {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};
@@ -152,7 +152,7 @@ Overwrite the given field. This does no checking.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};

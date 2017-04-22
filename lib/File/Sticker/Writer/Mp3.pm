@@ -40,7 +40,7 @@ File must be an MP3 file.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'audio/mpeg')
@@ -86,7 +86,7 @@ Overwrite the given field. This does no checking.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -145,7 +145,7 @@ This doesn't completely remove it, merely sets it to the empty string.
 sub delete_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami() if $self->{verbose} > 2;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};

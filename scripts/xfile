@@ -123,9 +123,8 @@ sub print_meta {
     my $sticker = $args{sticker};
     my $filename = $args{filename};
 
-    my $meta = $sticker->read_meta($filename);
-
     say STDERR "== $filename ==";
+    my $meta = $sticker->read_meta($filename);
     print STDERR Dump($meta);
 } # print_meta
 
@@ -148,7 +147,7 @@ sub meta_from_file {
 MAIN: {
     my $opts = process_args();
     my $sticker = File::Sticker->new(
-        fields_wanted=>$opts->{fields_wanted},
+        wanted_fields=>$opts->{fields_wanted},
         overwrite=>$opts->{overwrite},
         derive=>$opts->{derive},
         verbose=>$opts->{verbose},
