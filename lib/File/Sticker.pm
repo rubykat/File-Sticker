@@ -19,6 +19,8 @@ And update a database with that information.
 
 use common::sense;
 use File::Sticker::Reader;
+use File::Sticker::Writer;
+use File::Sticker::Database;
 use Hash::Merge;
 use YAML::Any;
 use Module::Pluggable instantiate => 'new',
@@ -37,7 +39,13 @@ sub whoami  { ( caller(1) )[3] }
 
 Create a new object, setting global values for the object.
 
-    my $obj = File::Sticker->new();
+    my $obj = File::Sticker->new(
+        wanted_fields=>\%wanted_fields,
+        verbose=>$verbose,
+        dbname=>$dbname,
+        field_order=>\@fields,
+        primary_table=>$primary_table,
+    );
 
 =cut
 
@@ -73,6 +81,25 @@ sub new {
 	$wt->init(%new_args);
     }
     $self->{_writers} = \@writers;
+
+    # -------------------------------------
+    # Database (optional)
+    # -------------------------------------
+    if (exists $self->{dbname}
+            and exists $self->{wanted_fields}
+            and exists $self->{field_order}
+            and exists $self->{primary_table})
+    {
+        # we have enough to instantiate a database object
+        $self->{db} = File::Sticker::Database->new(
+            dbname=>$self->{dbname},
+            wanted_fields=>$self->{wanted_fields},
+            field_order=>$self->{field_order},
+            primary_table=>$self->{primary_table},
+        );
+        $self->{db}->do_connect();
+        $self->{db}->create_tables();
+    }
 
     return ($self);
 } # new

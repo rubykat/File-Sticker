@@ -96,7 +96,7 @@ sub process_args () {
                'from_file=s',
 	       'add=s%',
 	       'delete=s@',
-	       'fields_wanted=s%',
+	       'wanted_fields=s%',
 	      ) or pod2usage(2);
 
     if ($opts->{manpage})
@@ -147,7 +147,7 @@ sub meta_from_file {
 MAIN: {
     my $opts = process_args();
     my $sticker = File::Sticker->new(
-        wanted_fields=>$opts->{fields_wanted},
+        wanted_fields=>$opts->{wanted_fields},
         overwrite=>$opts->{overwrite},
         derive=>$opts->{derive},
         verbose=>$opts->{verbose},
