@@ -531,7 +531,7 @@ sub add_meta_to_db {
         {
             croak __PACKAGE__ . " failed to prepare '$q' : $DBI::errstr";
         }
-        $ret = $sth->execute($file_id, $fullname, @values);
+        $ret = $sth->execute($fullname, @values);
         if (!$ret)
         {
             croak __PACKAGE__ . " failed '$q' : $DBI::errstr";
