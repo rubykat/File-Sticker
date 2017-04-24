@@ -343,6 +343,7 @@ sub update_db {
 
     foreach my $filename (@files)
     {
+        say $filename if $self->{verbose};
         if (!$transaction_on)
         {
             $self->{db}->start_transaction();
@@ -358,6 +359,7 @@ sub update_db {
             $self->{db}->commit();
             $transaction_on = 0;
             $num_trans = 0;
+            say " " if $self->{verbose};
         }
     }
     $self->{db}->commit();

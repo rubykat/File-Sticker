@@ -104,6 +104,7 @@ sub process_args () {
 	       'dbname=s',
 	       'topdir=s',
                'primary_table|table=s',
+               'tagfield=s',
 	       'wanted_fields=s%',
 	       'field_order=s@',
 	       'taggable_fields=s@',
