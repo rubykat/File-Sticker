@@ -123,7 +123,7 @@ sub create_tables ($) {
 
     my $primary_table = $self->{primary_table};
 
-    my $q = "CREATE TABLE IF NOT EXISTS $primary_table (fileid NUMBER PRIMARY KEY, file TEXT NOT NULL UNIQUE, "
+    my $q = "CREATE TABLE IF NOT EXISTS $primary_table (fileid INTEGER PRIMARY KEY, file TEXT NOT NULL UNIQUE, "
     . join(", ", @field_defs) .");";
     my $ret = $dbh->do($q);
     if (!$ret)
@@ -201,6 +201,7 @@ sub get_file_id ($$) {
     my $dbh = $self->do_connect();
 
     my $fullname = path($filename)->realpath->stringify;
+    say STDERR "fullname=$fullname" if $self->{verbose} > 2;
 
     my $q = 'SELECT fileid FROM ' . $self->{primary_table} . ' WHERE file = ?';
     my $sth = $self->_prepare($q);
@@ -214,6 +215,7 @@ sub get_file_id ($$) {
     my @row;
     while (@row = $sth->fetchrow_array)
     {
+        say STDERR "found a file: ", $row[0] if $self->{verbose} > 2;
         $fileid = $row[0];
     }
 
@@ -483,6 +485,7 @@ sub add_meta_to_db {
     # to rebuild indexes.
     my $fullname = path($filename)->realpath->stringify;
     my $file_id = $self->get_file_id($fullname);
+    say STDERR "file_id=$file_id" if $self->{verbose} > 1;
     my $q;
     my $ret;
     if ($file_id)
@@ -526,6 +529,8 @@ sub add_meta_to_db {
         my $placeholders = join ", ", ('?') x @{$self->{field_order}};
         $q = 'INSERT INTO ' . $self->{primary_table} . ' (file, '
         . join(", ", @{$self->{field_order}}) . ') VALUES (?, ' . $placeholders . ');';
+        say STDERR "q=$q" if $self->{verbose} > 1;
+
         my $sth = $self->_prepare($q);
         if (!$sth)
         {
@@ -539,6 +544,7 @@ sub add_meta_to_db {
 
         # get the file_id of the newly-inserted file
         $file_id = $self->get_file_id($fullname);
+        say STDERR "new file_id=$file_id" if $self->{verbose} > 1;
     }
 
     # ------------------------------------------------

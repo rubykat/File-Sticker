@@ -102,6 +102,7 @@ sub new {
             primary_table=>$self->{primary_table},
             taggable_fields=>$self->{taggable_fields},
             topdir=>$self->{topdir},
+            verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();
         $self->{db}->create_tables();
