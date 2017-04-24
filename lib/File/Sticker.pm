@@ -55,7 +55,7 @@ sub new {
     my $self = bless ({%parameters}, ref ($class) || $class);
 
     my %new_args = ();
-    foreach my $key (qw(wanted_fields verbose))
+    foreach my $key (qw(wanted_fields verbose topdir))
     {
         if (exists $self->{$key})
         {
