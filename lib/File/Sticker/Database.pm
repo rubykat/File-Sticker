@@ -148,7 +148,7 @@ sub create_tables ($) {
 
     # ----------------------------------------------------------
     # Create the "info" table
-    # This has the same as the primary_table, plus an all_tags field
+    # This has the same as the primary_table, plus a faceted_tags field
     # which combines the taggable information into one big collection
     # of faceted tags.
     # ----------------------------------------------------------
@@ -156,7 +156,7 @@ sub create_tables ($) {
     {
         $q = "CREATE VIEW IF NOT EXISTS ${primary_table}_info AS SELECT fileid, file, ";
         $q .= join(', ', @fieldnames);
-        # create the all_tags field
+        # create the faceted_tags field
         $q .= ", replace(";
         my @tagdefs = ();
         foreach my $fn (@{$self->{taggable_fields}})
@@ -173,7 +173,7 @@ sub create_tables ($) {
         $q .= join(' || ', @tagdefs);
         $q .= ', " ", "-") ';
 
-        $q .= " AS all_tags ";
+        $q .= " AS faceted_tags ";
         $q .= " FROM $primary_table;";
 
         $ret = $dbh->do($q);
@@ -309,7 +309,7 @@ sub query_by_tags ($$$) {
     printf "Q='%s'\n", $query_string if $self->{verbose} > 1;
     my @pfields = qw(fileid file);
     push @pfields, @{$self->{field_order}},
-    push @pfields, 'all_tags';
+    push @pfields, 'faceted_tags';
     my $parser = Search::Query->parser(
         query_class => 'SQL',
         null_term => 'NULL',
@@ -317,12 +317,12 @@ sub query_by_tags ($$$) {
             like => 'GLOB',
             wildcard => '*',
         },
-        default_field => 'all_tags',
+        default_field => 'faceted_tags',
         default_op => '~',
         fields => \@pfields,
         term_expander => sub {
                    my ($term, $field) = @_;
-                   if (!$field || $field eq 'all_tags')
+                   if (!$field || $field eq 'faceted_tags')
                    {
                        # search for pipe-delimited terms
                        my @newterms = ();
