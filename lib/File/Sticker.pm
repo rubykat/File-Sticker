@@ -325,6 +325,42 @@ sub overlooked_files {
     return \@overlooked;
 } # overlooked_files
 
+=head2 update_db
+
+Add/Update the given files into the database.
+
+    $sticker->update_db(@files);
+
+=cut
+sub update_db {
+    my $self = shift;
+    my @files = @_;
+
+    my $transaction_on = 0;
+    my $num_trans = 0;
+
+    foreach my $filename (@files)
+    {
+        if (!$transaction_on)
+        {
+            $self->{db}->start_transaction();
+            $transaction_on = 1;
+            $num_trans = 0;
+        }
+        my $meta = $self->read_meta($filename);
+        $self->{db}->add_meta_to_db($filename,%{$meta});
+        # do the commits in bursts
+        $num_trans++;
+        if ($transaction_on and $num_trans > 100)
+        {
+            $self->{db}->commit();
+            $transaction_on = 0;
+            $num_trans = 0;
+        }
+    }
+    $self->{db}->commit();
+} # update_db
+
 =head2 delete_file_from_db
 
 Delete the given file from the database.
@@ -338,21 +374,6 @@ sub delete_file_from_db {
 
     return $self->{db}->delete_file_from_db($filename);
 } # delete_file_from_db
-
-=head2 update_from_file
-
-Add/Update the given file into the database.
-
-    $sticker->update_from_file($filename);
-
-=cut
-sub update_from_file {
-    my $self = shift;
-    my $filename = shift;
-
-    my $meta = $self->read_meta($filename);
-    return $self->{db}->add_meta_to_db($filename,%{$meta});
-} # update_from_file
 
 =head1 BUGS
 

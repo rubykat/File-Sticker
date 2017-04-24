@@ -186,6 +186,63 @@ sub create_tables ($) {
     return 1;
 } # create_tables
 
+=head2 do_disconnect
+
+Disconnect from the database
+
+=cut
+sub do_disconnect ($) {
+    my $self = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    if (!$self->{dbh})
+    {
+        return;
+    }
+    $self->{dbh}->disconnect();
+} # do_disconnect
+
+=head2 start_transaction
+
+Start a transaction.
+
+=cut
+sub start_transaction ($) {
+    my $self = shift;
+    say STDERR whoami() if $self->{verbose} > 2;
+
+    if (!$self->{dbh})
+    {
+        return;
+    }
+    my $ret = $self->{dbh}->do("BEGIN TRANSACTION;");
+    if (!$ret)
+    {
+        croak __PACKAGE__ . " failed 'BEGIN TRANSACTION' : $DBI::errstr";
+    }
+} # start_transaction
+
+=head2 commit
+
+Commit a pending transaction.
+
+    $self->commit();
+
+=cut
+sub commit ($%) {
+    my $self = shift;
+    my %args = @_;
+    my $meta = $args{meta};
+
+    return unless $self->{dbh};
+
+    my $ret = $self->{dbh}->do("COMMIT;");
+    if (!$ret)
+    {
+        croak __PACKAGE__ . " failed 'COMMIT' : $DBI::errstr";
+    }
+} # commit
+
 =head2 get_file_id
 
 Get the fileid of the given file

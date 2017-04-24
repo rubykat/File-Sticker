@@ -180,6 +180,10 @@ sub do_stuff {
         my $files = $sticker->overlooked_files(@ARGV);
         say join("\n", @{$files});
     }
+    elsif ($opts->{update})
+    {
+        $sticker->update_db(@ARGV);
+    }
     else
     {
         #
@@ -192,10 +196,6 @@ sub do_stuff {
             if ($opts->{removed})
             {
                 $sticker->delete_file_from_db($file);
-            }
-            elsif ($opts->{update})
-            {
-                $sticker->update_from_file($file);
             }
             elsif ($opts->{add} or $opts->{delete})
             {
