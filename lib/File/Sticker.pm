@@ -45,6 +45,7 @@ Create a new object, setting global values for the object.
         dbname=>$dbname,
         field_order=>\@fields,
         primary_table=>$primary_table,
+        tagfield=>$tagfield,
     );
 
 =cut
@@ -102,6 +103,7 @@ sub new {
             primary_table=>$self->{primary_table},
             taggable_fields=>$self->{taggable_fields},
             topdir=>$self->{topdir},
+            tagfield=>$self->{tagfield},
             verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();

@@ -344,7 +344,7 @@ sub get_all_files {
 =head2 query_by_tags
 
 Use +tag -tag nomenclature for searching the database for matching files.
-Only works if the *info table exists.
+If the *info table exists, uses that, otherwise, it uses the "tagfield" in the primary table.
 
 =cut
 sub query_by_tags ($$$) {
@@ -358,15 +358,11 @@ sub query_by_tags ($$$) {
     {
         $table = $table . '_info';
     }
-    else
-    {
-        return undef;
-    }
 
     printf "Q='%s'\n", $query_string if $self->{verbose} > 1;
     my @pfields = qw(fileid file);
     push @pfields, @{$self->{field_order}},
-    push @pfields, 'faceted_tags';
+    push @pfields, 'faceted_tags' if $self->{taggable_fields};
     my $parser = Search::Query->parser(
         query_class => 'SQL',
         null_term => 'NULL',
@@ -374,12 +370,14 @@ sub query_by_tags ($$$) {
             like => 'GLOB',
             wildcard => '*',
         },
-        default_field => 'faceted_tags',
+        default_field => ($self->{tagfield} ? $self->{tagfield} : 'faceted_tags'),
         default_op => '~',
         fields => \@pfields,
         term_expander => sub {
                    my ($term, $field) = @_;
-                   if (!$field || $field eq 'faceted_tags')
+                   if (!$field
+                       || $field eq 'faceted_tags'
+                       || $field eq $self->{tagfield})
                    {
                        # search for pipe-delimited terms
                        my @newterms = ();
