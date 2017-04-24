@@ -236,17 +236,23 @@ sub derive_values {
     if ($self->{topdir})
     {
         $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
+        my $rel_parent = $fp->parent->relative($self->{topdir})->stringify;
+        if ($meta->{relpath} =~ /\.\./) # we got a problem
+        {
+            $meta->{relpath} =~ s!\.\./!!g;
+            $rel_parent =~ s!\.\./!!g;
+        }
 
         # Check if a thumbnail exists
         # It could be a jpg or a png
         # Note that if the file itself is a jpg or png, we can use it as the thumbnail
         if (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.jpg')
         {
-            $meta->{thumbnail} = $fp->parent->relative($self->{topdir}) . '/.thumbnails/' . $meta->{name} . '.jpg'
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.jpg'
         }
         elsif (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.png')
         {
-            $meta->{thumbnail} = $fp->parent->relative($self->{topdir}) . '/.thumbnails/' . $meta->{name} . '.png'
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.png'
         }
         elsif ($meta->{ext} =~ /jpg|png|gif/)
         {
@@ -258,9 +264,7 @@ sub derive_values {
         # this is because that's how it is *grouped* together with other files, yes?
         # But use the directory relative to the "top" directory, the first two or three parts of it.
 
-        my $dir = $fp->relative($self->{topdir})->parent->stringify;
-        $dir =~ s!^/!!; # remove the leading /
-        my @bits = split(/\//, $dir);
+        my @bits = split(/\//, $rel_parent);
         splice(@bits,3);
         $meta->{grouping} = join(' ', @bits);
     }
