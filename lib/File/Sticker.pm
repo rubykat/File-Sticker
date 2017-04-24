@@ -143,7 +143,10 @@ sub read_meta ($%) {
         {
             print STDERR "Reader ", $reader->name(), " can read $filename\n" if $self->{verbose} > 1;
             my $info = $reader->read_meta($filename);
-            $info = $reader->derive_values(filename=>$filename,meta=>$info);
+            if ($self->{derive})
+            {
+                $info = $reader->derive_values(filename=>$filename,meta=>$info);
+            }
             my $newmeta = $merge->merge($meta, $info);
             $meta = $newmeta;
             print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
