@@ -525,7 +525,7 @@ sub add_meta_to_db {
     {
         my $placeholders = join ", ", ('?') x @{$self->{field_order}};
         $q = 'INSERT INTO ' . $self->{primary_table} . ' (file, '
-        . join(", ", @{$self->{field_order}}) . ') VALUES (?, ?, ' . $placeholders . ');';
+        . join(", ", @{$self->{field_order}}) . ') VALUES (?, ' . $placeholders . ');';
         my $sth = $self->_prepare($q);
         if (!$sth)
         {
