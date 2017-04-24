@@ -86,9 +86,13 @@ sub new {
     # Database (optional)
     # -------------------------------------
     if (exists $self->{dbname}
+            and defined $self->{dbname}
             and exists $self->{wanted_fields}
+            and defined $self->{wanted_fields}
             and exists $self->{field_order}
-            and exists $self->{primary_table})
+            and defined $self->{field_order}
+            and exists $self->{primary_table}
+            and defined $self->{primary_table})
     {
         # we have enough to instantiate a database object
         $self->{db} = File::Sticker::Database->new(
@@ -96,6 +100,8 @@ sub new {
             wanted_fields=>$self->{wanted_fields},
             field_order=>$self->{field_order},
             primary_table=>$self->{primary_table},
+            taggable_fields=>$self->{taggable_fields},
+            topdir=>$self->{topdir},
         );
         $self->{db}->do_connect();
         $self->{db}->create_tables();
@@ -134,6 +140,7 @@ sub read_meta ($%) {
         {
             print STDERR "Reader ", $reader->name(), " can read $filename\n" if $self->{verbose} > 1;
             my $info = $reader->read_meta($filename);
+            $info = $reader->derive_values(filename=>$filename,meta=>$info);
             my $newmeta = $merge->merge($meta, $info);
             $meta = $newmeta;
             print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
@@ -241,6 +248,110 @@ sub replace_all_meta {
     }
     return $okay;
 } # replace_all_meta
+
+=head2 query_by_tags
+
+Search using +tag -tag nomenclature.
+
+    $sticker->do_search($query_string);
+
+=cut
+sub query_by_tags {
+    my $self = shift;
+    my $query = shift;
+
+    return $self->{db}->query_by_tags($query);
+} # query_by_tags
+
+=head2 query_one_file
+
+Get the database info about the given file.  This is different from read_meta,
+since this is getting the info from the database, not from the file.
+
+    $sticker->query_one_file($file);
+
+=cut
+sub query_one_file {
+    my $self = shift;
+    my $file = shift;
+
+    my $meta = $self->{db}->get_file_meta($file);
+    return $meta;
+} # query_one_file
+
+=head2 missing_files
+
+Check through the database to see which files in the database no longer exist.
+
+    my $files = $sticker->missing_files();
+
+=cut
+sub missing_files {
+    my $self = shift;
+
+    my @missing_files = ();
+    my @files = @{$self->{db}->get_all_files()};
+    foreach my $file (@files)
+    {
+        if (!-f $file)
+        {
+            push @missing_files, $file;
+        }
+    }
+    return \@missing_files;
+} # missing_files
+
+=head2 overlooked_files
+
+Check through the database to see which of the given files are not in the database.
+
+    my $files = $sticker->overlooked_files(@files);
+
+=cut
+sub overlooked_files {
+    my $self = shift;
+    my @files = @_;
+
+    my @overlooked = ();
+    foreach my $file (@files)
+    {
+        my $id = $self->{db}->get_file_id($file);
+        if (!$id)
+        {
+            push @overlooked, $file;
+        }
+    }
+    return \@overlooked;
+} # overlooked_files
+
+=head2 delete_file_from_db
+
+Delete the given file from the database.
+
+    $sticker->delete_file_from_db($filename);
+
+=cut
+sub delete_file_from_db {
+    my $self = shift;
+    my $filename = shift;
+
+    return $self->{db}->delete_file_from_db($filename);
+} # delete_file_from_db
+
+=head2 update_from_file
+
+Add/Update the given file into the database.
+
+    $sticker->update_from_file($filename);
+
+=cut
+sub update_from_file {
+    my $self = shift;
+    my $filename = shift;
+
+    my $meta = $self->read_meta($filename);
+    return $self->{db}->add_meta_to_db($filename,%{$meta});
+} # update_from_file
 
 =head1 BUGS
 

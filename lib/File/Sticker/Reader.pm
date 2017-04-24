@@ -227,8 +227,8 @@ sub derive_values {
 
     my $fp = path($filename);
     $meta->{file} = $fp->realpath->stringify;
-    $meta->{basename} = $fp->basename->stringify;
-    $meta->{name} = $fp->basename(qr/\.\w+/)->stringify;
+    $meta->{basename} = $fp->basename();
+    $meta->{name} = $fp->basename(qr/\.\w+/);
     if ($self->{topdir})
     {
         $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
