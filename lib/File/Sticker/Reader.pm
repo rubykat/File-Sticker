@@ -229,9 +229,29 @@ sub derive_values {
     $meta->{file} = $fp->realpath->stringify;
     $meta->{basename} = $fp->basename();
     $meta->{name} = $fp->basename(qr/\.\w+/);
+    if ($meta->{basename} =~ /\.(\w+)$/)
+    {
+        $meta->{ext} = $1;
+    }
     if ($self->{topdir})
     {
         $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
+
+        # Check if a thumbnail exists
+        # It could be a jpg or a png
+        # Note that if the file itself is a jpg or png, we can use it as the thumbnail
+        if (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.jpg')
+        {
+            $meta->{thumbnail} = $fp->parent->relative($self->{topdir}) . '/.thumbnails/' . $meta->{name} . '.jpg'
+        }
+        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.png')
+        {
+            $meta->{thumbnail} = $fp->parent->relative($self->{topdir}) . '/.thumbnails/' . $meta->{name} . '.png'
+        }
+        elsif ($meta->{ext} =~ /jpg|png|gif/)
+        {
+            $meta->{thumbnail} = $meta->{relpath};
+        }
 
         # Make this grouping stuff simple:
         # take it as the *directory* where the file is;
