@@ -524,7 +524,7 @@ sub add_meta_to_db {
     else
     {
         my $placeholders = join ", ", ('?') x @{$self->{field_order}};
-        $q = 'INSERT INTO ' . $self->{primary_table} . ' (fileid, file, '
+        $q = 'INSERT INTO ' . $self->{primary_table} . ' (file, '
         . join(", ", @{$self->{field_order}}) . ') VALUES (?, ?, ' . $placeholders . ');';
         my $sth = $self->_prepare($q);
         if (!$sth)
@@ -536,6 +536,9 @@ sub add_meta_to_db {
         {
             croak __PACKAGE__ . " failed '$q' : $DBI::errstr";
         }
+
+        # get the file_id of the newly-inserted file
+        $file_id = $self->get_file_id($fullname);
     }
 
     # ------------------------------------------------
