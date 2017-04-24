@@ -263,6 +263,7 @@ MAIN: {
         taggable_fields=>$opts->{taggable_fields},
         primary_table=>$opts->{primary_table},
         derive=>$opts->{derive},
+        tagfield=>$opts->{tagfield},
         verbose=>$opts->{verbose},
     );
 

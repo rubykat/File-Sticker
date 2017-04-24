@@ -370,7 +370,7 @@ sub query_by_tags ($$$) {
             like => 'GLOB',
             wildcard => '*',
         },
-        default_field => ($self->{tagfield} ? $self->{tagfield} : 'faceted_tags'),
+        default_field => (!$self->{taggable_fields} ? $self->{tagfield} : 'faceted_tags'),
         default_op => '~',
         fields => \@pfields,
         term_expander => sub {
@@ -409,7 +409,7 @@ sub query_by_tags ($$$) {
     my $q = "SELECT file FROM $table WHERE " . $query->stringify;
     $q .= " ORDER BY file";
     print $q, "\n" if $self->{verbose} > 1;
-    my $sth = $dbh->prepare($q);
+    my $sth = $self->_prepare($q);
     my $ret = $sth->execute();
     if (!$ret)
     {
