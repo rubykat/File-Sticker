@@ -265,8 +265,13 @@ sub derive_values {
         $meta->{grouping} = join(' ', @bits);
     }
     my $stat = $fp->stat;
-    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
     $meta->{filesize} = $stat->size;
+
+    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
+    if (!$meta->{linkdate})
+    {
+        $meta->{linkdate} = $meta->{filedate};
+    }
 
     $meta->{alt_title} = $meta->{title} if !$meta->{alt_title};
     return $meta;
