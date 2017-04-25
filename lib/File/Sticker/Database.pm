@@ -354,15 +354,24 @@ sub query_by_tags ($$$) {
 
     my $dbh = $self->do_connect();
     my $table = $self->{primary_table};
+    my $using_info_table = 0;
     if ($self->{taggable_fields})
     {
         $table = $table . '_info';
+        $using_info_table = 1;
     }
+    my $default_field = ($using_info_table
+        ? 'faceted_tags'
+        : ( $self->{tagfield}
+            ? $self->{tagfield}
+            : 'tags'
+        )
+    );
 
     printf "Q='%s'\n", $query_string if $self->{verbose} > 1;
     my @pfields = qw(fileid file);
     push @pfields, @{$self->{field_order}},
-    push @pfields, 'faceted_tags' if $self->{taggable_fields};
+    push @pfields, 'faceted_tags' if $using_info_table;
     my $parser = Search::Query->parser(
         query_class => 'SQL',
         null_term => 'NULL',
@@ -370,14 +379,12 @@ sub query_by_tags ($$$) {
             like => 'GLOB',
             wildcard => '*',
         },
-        default_field => (!$self->{taggable_fields} ? $self->{tagfield} : 'faceted_tags'),
+        default_field => $default_field,
         default_op => '~',
         fields => \@pfields,
         term_expander => sub {
                    my ($term, $field) = @_;
-                   if (!$field
-                       || $field eq 'faceted_tags'
-                       || $field eq $self->{tagfield})
+                   if (!$field || $field eq $default_field)
                    {
                        # search for pipe-delimited terms
                        my @newterms = ();
