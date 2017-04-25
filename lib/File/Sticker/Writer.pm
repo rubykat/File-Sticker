@@ -21,7 +21,6 @@ nomenclature.
 
 use common::sense;
 use File::LibMagic;
-use String::CamelCase qw(wordsplit);
 
 # FOR DEBUGGING
 sub whoami  { ( caller(1) )[3] }
@@ -474,26 +473,6 @@ sub replace_one_field {
     my $value = $args{value};
 
 } # replace_one_field
-
-=head2 derive_title
-
-Derive the title from the filename.
-
-    my $title = $writer->derive_title($filename);
-
-=cut
-sub derive_title($$) {
-    my $self = shift;
-    my $filename = shift;
-    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
-
-    my ($bn, $path, $suffix) = fileparse($filename, qr/\.[^.]*/);
-    my @words = wordsplit($bn);
-    my $title = join(' ', @words);
-    $title =~ s/(\w+)/\u\L$1/g; # title case
-    $title =~ s/(\d+)$/ $1/; # trailing numbers
-    return $title;
-} # derive_title
 
 =head1 BUGS
 

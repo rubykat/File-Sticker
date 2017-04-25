@@ -49,8 +49,6 @@ Other fields will be called whatever the user has pre-configured.
 
 use common::sense;
 use File::LibMagic;
-use Path::Tiny;
-use POSIX qw(strftime);
 
 # FOR DEBUGGING
 sub whoami  { ( caller(1) )[3] }
@@ -203,83 +201,6 @@ sub read_meta {
     my $filename = shift;
 
 } # read_meta
-
-=head1 Helper Functions
-
-Private interface
-
-=head2 derive_values
-
-Derive common values from the existing meta-data.
-
-    $reader->derive_values(filename=>$filename,
-        meta=>$meta);
-
-=cut
-
-sub derive_values {
-    my $self = shift;
-    my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
-
-    my $filename = $args{filename};
-    my $meta = $args{meta};
-
-    my $fp = path($filename);
-    $meta->{file} = $fp->realpath->stringify;
-    $meta->{basename} = $fp->basename();
-    $meta->{name} = $fp->basename(qr/\.\w+/);
-    if ($meta->{basename} =~ /\.(\w+)$/)
-    {
-        $meta->{ext} = $1;
-    }
-    if ($self->{topdir})
-    {
-        $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
-        my $rel_parent = $fp->parent->relative($self->{topdir})->stringify;
-        if ($meta->{relpath} =~ /\.\./) # we got a problem
-        {
-            $meta->{relpath} =~ s!\.\./!!g;
-            $rel_parent =~ s!\.\./!!g;
-        }
-
-        # Check if a thumbnail exists
-        # It could be a jpg or a png
-        # Note that if the file itself is a jpg or png, we can use it as the thumbnail
-        if (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.jpg')
-        {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.jpg'
-        }
-        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.png')
-        {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.png'
-        }
-        elsif ($meta->{ext} =~ /jpg|png|gif/)
-        {
-            $meta->{thumbnail} = $meta->{relpath};
-        }
-
-        # Make this grouping stuff simple:
-        # take it as the *directory* where the file is;
-        # this is because that's how it is *grouped* together with other files, yes?
-        # But use the directory relative to the "top" directory, the first two or three parts of it.
-
-        my @bits = split(/\//, $rel_parent);
-        splice(@bits,3);
-        $meta->{grouping} = join(' ', @bits);
-    }
-    my $stat = $fp->stat;
-    $meta->{filesize} = $stat->size;
-
-    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
-    if (!$meta->{linkdate})
-    {
-        $meta->{linkdate} = $meta->{filedate};
-    }
-
-    $meta->{alt_title} = $meta->{title} if !$meta->{alt_title};
-    return $meta;
-} # derive_values
 
 =head1 BUGS
 

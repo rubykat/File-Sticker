@@ -22,7 +22,11 @@ use File::Sticker::Reader;
 use File::Sticker::Writer;
 use File::Sticker::Database;
 use Hash::Merge;
+use POSIX qw(strftime);
+use String::CamelCase qw(wordsplit);
 use YAML::Any;
+use Path::Tiny;
+
 use Module::Pluggable instantiate => 'new',
 search_path => ['File::Sticker::Reader'],
 sub_name => 'readers';
@@ -46,6 +50,7 @@ Create a new object, setting global values for the object.
         field_order=>\@fields,
         primary_table=>$primary_table,
         tagfield=>$tagfield,
+        derive=>1,
     );
 
 =cut
@@ -143,7 +148,6 @@ sub read_meta ($%) {
         {
             print STDERR "Reader ", $reader->name(), " can read $filename\n" if $self->{verbose} > 1;
             my $info = $reader->read_meta($filename);
-            $info = $reader->derive_values(filename=>$filename,meta=>$info);
             my $newmeta = $merge->merge($meta, $info);
             $meta = $newmeta;
             print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
@@ -177,6 +181,11 @@ sub add_field_to_file {
         return undef;
     }
     my $old_meta = $self->read_meta($filename);
+    my $derived = $self->derive_values(filename=>$filename,meta=>$old_meta);
+    if ($self->{derive} and defined $derived->{$field})
+    {
+        $value = $derived->{$field};
+    }
 
     foreach my $writer (@{$self->{_writers}})
     {
@@ -351,6 +360,19 @@ sub update_db {
             $num_trans = 0;
         }
         my $meta = $self->read_meta($filename);
+
+        # If there are desired fields which are derivable
+        # but which are not set in the file itself,
+        # derive them, so they can be added to the meta
+        my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
+        foreach my $field (@{$self->{field_order}})
+        {
+            if (!$meta->{$field} and $derived->{$field})
+            {
+                $meta->{$field} = $derived->{$field};
+            }
+        }
+
         $self->{db}->add_meta_to_db($filename,%{$meta});
         # do the commits in bursts
         $num_trans++;
@@ -378,6 +400,86 @@ sub delete_file_from_db {
 
     return $self->{db}->delete_file_from_db($filename);
 } # delete_file_from_db
+
+=head2 derive_values
+
+Derive common values from the existing meta-data.
+
+    $sticker->derive_values(filename=>$filename,
+        meta=>$meta);
+
+=cut
+
+sub derive_values {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    my $meta = $args{meta};
+
+    my $fp = path($filename);
+    $meta->{file} = $fp->realpath->stringify;
+    $meta->{basename} = $fp->basename();
+    $meta->{name} = $fp->basename(qr/\.\w+/);
+    if ($meta->{basename} =~ /\.(\w+)$/)
+    {
+        $meta->{ext} = $1;
+    }
+
+    # title
+    my @words = wordsplit($meta->{name});
+    my $title = join(' ', @words);
+    $title =~ s/(\w+)/\u\L$1/g; # title case
+    $title =~ s/(\d+)$/ $1/; # trailing numbers
+    $meta->{title} = $title;
+
+    if ($self->{topdir})
+    {
+        $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
+        my $rel_parent = $fp->parent->relative($self->{topdir})->stringify;
+        if ($meta->{relpath} =~ /\.\./) # we got a problem
+        {
+            $meta->{relpath} =~ s!\.\./!!g;
+            $rel_parent =~ s!\.\./!!g;
+        }
+
+        # Check if a thumbnail exists
+        # It could be a jpg or a png
+        # Note that if the file itself is a jpg or png, we can use it as the thumbnail
+        if (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.jpg')
+        {
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.jpg'
+        }
+        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.png')
+        {
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.png'
+        }
+        elsif ($meta->{ext} =~ /jpg|png|gif/)
+        {
+            $meta->{thumbnail} = $meta->{relpath};
+        }
+
+        # Make this grouping stuff simple:
+        # take it as the *directory* where the file is;
+        # this is because that's how it is *grouped* together with other files, yes?
+        # But use the directory relative to the "top" directory, the first two or three parts of it.
+
+        my @bits = split(/\//, $rel_parent);
+        splice(@bits,3);
+        $meta->{grouping} = join(' ', @bits);
+    }
+    my $stat = $fp->stat;
+    $meta->{filesize} = $stat->size;
+
+    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
+    if (!$meta->{linkdate})
+    {
+        $meta->{linkdate} = $meta->{filedate};
+    }
+
+    return $meta;
+} # derive_values
 
 =head1 BUGS
 
