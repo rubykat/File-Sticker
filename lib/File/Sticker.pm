@@ -305,6 +305,7 @@ sub missing_files {
     my @files = @{$self->{db}->get_all_files()};
     foreach my $file (@files)
     {
+        say STDERR "checking $file" if $self->{verbose} > 2;
         if (!-f $file)
         {
             push @missing_files, $file;
