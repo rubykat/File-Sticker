@@ -171,17 +171,23 @@ sub do_stuff {
         my $files = $sticker->query_by_tags($query_string);
         say join("\n", @{$files});
     }
-    elsif ($opts->{missing})
+    if ($opts->{missing})
     {
         my $files = $sticker->missing_files();
         say join("\n", @{$files});
     }
-    elsif ($opts->{overlooked})
+    if ($opts->{overlooked})
     {
         my $files = $sticker->overlooked_files(@ARGV);
         say join("\n", @{$files});
     }
-    else
+
+    if ($opts->{removed}
+            or $opts->{add}
+            or $opts->{delete}
+            or $opts->{extract}
+            or $opts->{from_file}
+            or $opts->{list})
     {
         #
         # This invocation is a per-file operation.
@@ -239,9 +245,6 @@ sub do_stuff {
             elsif ($opts->{list})
             {
                 print_meta($opts,sticker=>$sticker,filename=>$file);
-            }
-            else
-            {
                 my $meta = $sticker->query_one_file($file);
                 print $file, ': ', Dump($meta), "\n";
             }
