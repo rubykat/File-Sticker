@@ -207,7 +207,7 @@ sub do_stuff {
                         $sticker->add_field_to_file(
                             filename => $file,
                             field => $fn,
-                            value => $opts->{field}->{$fn});
+                            value => $opts->{add}->{$fn});
                     }
                 }
                 if ($opts->{delete})
