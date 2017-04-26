@@ -133,16 +133,16 @@ sub replace_one_field {
     $mp3->update_tags();
 } # replace_one_field
 
-=head2 delete_one_field
+=head2 delete_field_from_file
 
 Remove the given field. This does no checking.
 This doesn't completely remove it, merely sets it to the empty string.
 
-    $writer->delete_one_field(filename=>$filename,field=>$field);
+    $writer->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
-sub delete_one_field {
+sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
@@ -184,7 +184,7 @@ sub delete_one_field {
         $mp3->select_id3v2_frame_by_descr('TXXX[tags]', '');
     }
     $mp3->update_tags();
-} # delete_one_field
+} # delete_field_from_file
 
 =head1 BUGS
 

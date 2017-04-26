@@ -95,16 +95,16 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head2 delete_one_field
+=head2 delete_field_from_file
 
 Completely remove the given field.
 This does no checking for multi-valued fields, it just deletes the whole thing.
 
-    $writer->delete_one_field(filename=>$filename,field=>$field);
+    $writer->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
-sub delete_one_field {
+sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
@@ -115,7 +115,7 @@ sub delete_one_field {
     my ($info) = LoadFile($filename);
     delete $info->{$field};
     DumpFile($filename, $info);
-} # delete_one_field
+} # delete_field_from_file
 
 =head2 replace_all_meta
 

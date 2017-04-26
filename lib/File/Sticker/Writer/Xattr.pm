@@ -88,16 +88,16 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head2 delete_one_field
+=head2 delete_field_from_file
 
 Completely remove the given field.
 For multi-value fields, it removes ALL the values.
 
-    $writer->delete_one_field(filename=>$filename,field=>$field);
+    $writer->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
-sub delete_one_field {
+sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
@@ -132,7 +132,7 @@ sub delete_one_field {
             delfattr($filename, $field);
         }
     }
-} # delete_one_field
+} # delete_field_from_file
 
 =head2 replace_all_meta
 
@@ -164,7 +164,7 @@ sub replace_all_meta {
         }
         else # not defined, remove it
         {
-            $self->delete_one_field(filename=>$filename,field=>$field);
+            $self->delete_field_from_file(filename=>$filename,field=>$field);
         }
     }
     # delete the stuff that isn't in the replacement data

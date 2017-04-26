@@ -143,15 +143,15 @@ sub replace_one_field {
     return $success;
 } # replace_one_field
 
-=head2 delete_one_field
+=head2 delete_field_from_file
 
 Completely remove the given field. This does no checking.
 
-    $writer->delete_one_field(filename=>$filename,field=>$field);
+    $writer->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
-sub delete_one_field {
+sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
@@ -197,7 +197,7 @@ sub delete_one_field {
         $et->WriteInfo($filename);
     }
     return $success;
-} # delete_one_field
+} # delete_field_from_file
 
 =cut
 
