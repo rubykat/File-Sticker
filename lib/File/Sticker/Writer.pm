@@ -207,11 +207,12 @@ sub add_field_to_file {
     my $old_meta = $args{old_meta};
 
     my $type = (
-        exists $self->{fields_wanted}->{$field}
-            and defined $self->{fields_wanted}->{$field}
-        ? $self->{fields_wanted}
+        exists $self->{wanted_fields}->{$field}
+            and defined $self->{wanted_fields}->{$field}
+        ? $self->{wanted_fields}->{$field}
         : 'UNKNOWN'
     );
+    say STDERR "field=$field value=$value type=$type" if $self->{verbose} > 2;
     if ($type =~ /multi/i)
     {
         return $self->update_multival_field(
@@ -320,6 +321,7 @@ sub update_multival_field {
         $prefix = $1;
         $value = $2;
     }
+    say STDERR "prefix='$prefix'" if $self->{verbose} > 2;
     if ($prefix eq '=')
     {
         $self->replace_one_field(
@@ -341,7 +343,7 @@ sub update_multival_field {
             {
                 $self->delete_multival_from_file(
                     filename=>$filename,
-                    name=>$field,
+                    field=>$field,
                     value=>$v,
                     old_vals=>$old_vals);
             }
@@ -349,7 +351,7 @@ sub update_multival_field {
             {
                 $self->add_multival_to_file(
                     filename=>$filename,
-                    name=>$field,
+                    field=>$field,
                     value=>$v,
                     old_vals=>$old_vals);
             }

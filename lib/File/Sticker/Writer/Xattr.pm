@@ -236,6 +236,7 @@ sub replace_one_field {
     my $filename = $args{filename};
     my $field = $args{field};
     my $value = $args{value};
+    say STDERR "field=$field value=$value" if $self->{verbose} > 2;
 
     if (-w $filename)
     {
