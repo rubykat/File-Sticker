@@ -208,6 +208,10 @@ sub do_stuff {
                             filename => $file,
                             field => $fn,
                             value => $opts->{add}->{$fn});
+                        if ($opts->{verbose})
+                        {
+                            print_meta($opts,sticker=>$sticker,filename=>$file);
+                        }
                     }
                 }
                 if ($opts->{delete})
