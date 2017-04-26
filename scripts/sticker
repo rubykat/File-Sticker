@@ -181,10 +181,6 @@ sub do_stuff {
         my $files = $sticker->overlooked_files(@ARGV);
         say join("\n", @{$files});
     }
-    elsif ($opts->{update})
-    {
-        $sticker->update_db(@ARGV);
-    }
     else
     {
         #
@@ -250,6 +246,12 @@ sub do_stuff {
                 print $file, ': ', Dump($meta), "\n";
             }
         }
+    }
+
+    # if we are updating, do it after we have made any other changes
+    if ($opts->{update})
+    {
+        $sticker->update_db(@ARGV);
     }
 
 } # do_stuff
