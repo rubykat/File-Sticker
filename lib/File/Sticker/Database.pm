@@ -517,6 +517,7 @@ sub add_meta_to_db {
 	{
 	    push @values, $val;
 	}
+        say STDERR "  $fn=$val " if $self->{verbose};
     }
     my %multi_values = ();
     foreach my $field (@{$self->{multi_fields}})
