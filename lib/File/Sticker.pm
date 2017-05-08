@@ -429,11 +429,14 @@ sub derive_values {
     }
 
     # title
-    my @words = wordsplit($meta->{name});
-    my $title = join(' ', @words);
-    $title =~ s/(\w+)/\u\L$1/g; # title case
-    $title =~ s/(\d+)$/ $1/; # trailing numbers
-    $meta->{title} = $title;
+    if (!$meta->{title})
+    {
+        my @words = wordsplit($meta->{name});
+        my $title = join(' ', @words);
+        $title =~ s/(\w+)/\u\L$1/g; # title case
+        $title =~ s/(\d+)$/ $1/; # trailing numbers
+        $meta->{title} = $title;
+    }
 
     if ($self->{topdir})
     {
