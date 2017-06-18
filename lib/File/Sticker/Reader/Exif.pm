@@ -22,6 +22,7 @@ nomenclature, such as "tags" for things called tags, or Keywords or Subject etc.
 use common::sense;
 use File::LibMagic;
 use Image::ExifTool qw(:Public);
+use File::Spec;
 
 use parent qw(File::Sticker::Reader);
 
@@ -42,6 +43,7 @@ sub allowed_file {
     my $file = shift;
     say STDERR whoami(), " filename=$file" if $self->{verbose} > 2;
 
+    $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} =~ /(image|pdf|epub)/)
     {
@@ -84,6 +86,7 @@ sub read_meta {
     my $filename = shift;
     say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
+    $filename = $self->_get_the_real_file(filename=>$filename);
     my $info = ImageInfo($filename);
     my %meta = ();
     my $is_gutenberg_book = 0;
@@ -159,6 +162,31 @@ sub read_meta {
     return \%meta;
 } # read_meta
 
+=head2 _get_the_real_file
+
+If the file is a directory, look for a cover file.
+
+    my $real_file = $writer->_get_the_real_file(filename=>$filename);
+
+=cut
+
+sub _get_the_real_file {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    if (-d $filename) # is a directory, look for a cover file
+    {
+        my $cover_file = ($self->{cover_file} ? $self->{cover_file} : 'cover.jpg');
+        $cover_file = File::Spec->catfile($filename, $cover_file);
+        if (-f $cover_file)
+        {
+            $filename = $cover_file;
+        }
+    }
+    return $filename;
+} # _get_the_real_file
 =cut
 
 =head1 BUGS
@@ -167,5 +195,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Reader
+1; # End of File::Sticker::Reader::Exif
 __END__

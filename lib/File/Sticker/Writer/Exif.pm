@@ -42,6 +42,7 @@ sub allowed_file {
     my $file = shift;
     say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
+    $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} =~ /(image|pdf)/)
     {
@@ -87,7 +88,7 @@ sub replace_one_field {
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
-    my $filename = $args{filename};
+    my $filename = $self->_get_the_real_file(filename=>$args{filename});
     my $field = $args{field};
     my $value = $args{value};
 
@@ -156,7 +157,7 @@ sub delete_field_from_file {
     my %args = @_;
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
-    my $filename = $args{filename};
+    my $filename = $self->_get_the_real_file(filename=>$args{filename});
     my $field = $args{field};
 
     my $ft = $self->{file_magic}->info_from_filename($filename);
@@ -198,6 +199,32 @@ sub delete_field_from_file {
     }
     return $success;
 } # delete_field_from_file
+
+=head2 _get_the_real_file
+
+If the file is a directory, look for a cover file.
+
+    my $real_file = $writer->_get_the_real_file(filename=>$filename);
+
+=cut
+
+sub _get_the_real_file {
+    my $self = shift;
+    my %args = @_;
+    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+
+    my $filename = $args{filename};
+    if (-d $filename) # is a directory, look for a cover file
+    {
+        my $cover_file = ($self->{cover_file} ? $self->{cover_file} : 'cover.jpg');
+        $cover_file = File::Spec->catfile($filename, $cover_file);
+        if (-f $cover_file)
+        {
+            $filename = $cover_file;
+        }
+    }
+    return $filename;
+} # _get_the_real_file
 
 =cut
 

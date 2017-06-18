@@ -17,6 +17,7 @@ sticker - add Xtra data (meta-data) to files or populate a database with file me
     sticker --overlooked file ...
 
     sticker --query query-string ...
+    sticker --list file ...
 
     sticker --removed file ...
     sticker --update file ...
@@ -246,7 +247,10 @@ sub do_stuff {
             {
                 print_meta($opts,sticker=>$sticker,filename=>$file);
                 my $meta = $sticker->query_one_file($file);
-                print $file, ': ', Dump($meta), "\n";
+                if ($meta)
+                {
+                    print $file, ': ', Dump($meta), "\n";
+                }
             }
         }
     }
