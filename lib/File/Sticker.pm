@@ -306,7 +306,7 @@ sub missing_files {
     foreach my $file (@files)
     {
         say STDERR "checking $file" if $self->{verbose} > 2;
-        if (!-f $file)
+        if (!-f $file and !-d $file)
         {
             push @missing_files, $file;
         }
