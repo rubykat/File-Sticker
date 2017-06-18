@@ -191,7 +191,7 @@ sub add_field_to_file {
     {
         if ($writer->allow($filename))
         {
-            print STDERR "Writer ", $writer->name(), "can write $filename\n" if $self->{verbose} > 1;
+            print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
             $writer->add_field_to_file(
                 filename=>$filename,
                 field=>$field,

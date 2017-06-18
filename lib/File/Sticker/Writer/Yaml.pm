@@ -36,6 +36,7 @@ If this writer can be used for the given file, then this returns true.
 File must be plain text and end with '.yml'
 Howwever, if the file DOES NOT EXIST, it CAN be WRITTEN TO, so return true then as well.
 This is the only case where the file doesn't need to exist beforehand.
+Note that if the file exists and is a directory, then it is not an allowed file!
 
 =cut
 
@@ -44,6 +45,10 @@ sub allowed_file {
     my $file = shift;
     say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
+    if (-d $file)
+    {
+        return 0;
+    }
     if (!-f $file)
     {
         return 1;
