@@ -146,13 +146,6 @@ sub read_meta {
     $value = $mp3->composer();
     $meta{author} = $value if $value;
 
-    # get "content grouping" tag from TIT1 field
-    if ($mp3->have_id3v2_frame('TIT1'))
-    {
-        my $cgroup = $mp3->select_id3v2_frame('TIT1');
-        push @tags, "grouping-$cgroup";
-    }
- 
     # get freeform tags from the TXXX field (see setpod)
     if ($mp3->have_id3v2_frame('TXXX', [qw(tags)]))
     {
