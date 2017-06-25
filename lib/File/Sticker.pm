@@ -486,6 +486,13 @@ sub derive_values {
         my @bits = split(/\//, $rel_parent);
         splice(@bits,3);
         $meta->{grouping} = join(' ', @bits);
+
+        # also make "section" fields, which are each separate bit of the "grouping"
+        for (my $i=0; $i < @bits; $i++)
+        {
+            my $id = $i + 1;
+            $meta->{"section${id}"} = $bits[$i];
+        }
     }
     my $stat = $fp->stat;
     $meta->{filesize} = $stat->size;
