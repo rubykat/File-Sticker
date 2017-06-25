@@ -6,7 +6,7 @@ sticker - add Xtra data (meta-data) to files or populate a database with file me
 
 =head1 SYNOPSIS
 
-    sticker --help | --manpage | --version
+    sticker --help | --manpage | --version | --settings
 
     sticker [--verbose] [--derive] --add I<string>=I<string> file [file ...]
     sticker [--verbose] --delete I<string> file [file ...]
@@ -117,6 +117,7 @@ sub process_args () {
                'update',
                'list',
                'tags',
+               'settings',
                'derive!',
                'extract!',
                'from_file=s',
@@ -132,7 +133,7 @@ sub process_args () {
 	    });
     }
 
-    if ($opts->{verbose} > 1)
+    if ($opts->{verbose} > 1 or $opts->{settings})
     {
         print STDERR "========\n", Dump($opts), "========\n";
     }
