@@ -106,6 +106,7 @@ sub process_args () {
 	       'dbname=s',
 	       'topdir=s',
                'primary_table|table=s',
+               'alt_tags_table|tagstable=s',
                'tagfield=s',
 	       'wanted_fields=s%',
 	       'field_order=s@',
@@ -117,7 +118,7 @@ sub process_args () {
                'update',
                'list',
                'tags',
-               'settings',
+               'settings=s',
                'derive!',
                'extract!',
                'from_file=s',
@@ -133,7 +134,7 @@ sub process_args () {
 	    });
     }
 
-    if ($opts->{verbose} > 1 or $opts->{settings})
+    if ($opts->{verbose} > 1)
     {
         print STDERR "========\n", Dump($opts), "========\n";
     }
@@ -283,10 +284,29 @@ MAIN: {
         field_order=>$opts->{field_order},
         taggable_fields=>$opts->{taggable_fields},
         primary_table=>$opts->{primary_table},
+        alt_tags_table=>$opts->{alt_tags_table},
         derive=>$opts->{derive},
         tagfield=>$opts->{tagfield},
         verbose=>$opts->{verbose},
     );
+    if ($opts->{settings})
+    {
+        if (exists $opts->{$opts->{settings}}
+                and defined $opts->{$opts->{settings}})
+        {
+            printf "%s: %s\n", $opts->{settings}, $opts->{$opts->{settings}};
+        }
+        elsif ($opts->{settings} eq 'schema')
+        {
+            my $cmd = sprintf("echo .schema | sqlite3 %s", $opts->{dbname});
+            system($cmd);
+        }
+        else
+        {
+            print "========\n", Dump($opts), "========\n";
+        }
+        exit;
+    }
 
     do_stuff($opts,$sticker);
 }

@@ -347,7 +347,7 @@ List the faceted-tags from the info table in the database.
 sub list_tags {
     my $self = shift;
 
-    my $tags = $self->{db}->get_faceted_tags();
+    my $tags = $self->{db}->get_all_tags();
     return $tags;
 } # list_tags
 

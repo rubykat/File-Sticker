@@ -341,26 +341,36 @@ sub get_all_files {
     return $files;
 } # get_all_files
 
-=head2 get_faceted_tags
+=head2 get_all_tags
 
-Return a list of all the faceted-tags in the info table.
+Return a list of all the tags from the appropriate "deep*" table.
 
-    my @tags = @{$db->get_faceted_tags()};
+    my @tags = @{$db->get_all_tags()};
 
 =cut
-sub get_faceted_tags {
+sub get_all_tags {
     my $self = shift;
 
-    if ($self->{taggable_fields})
+    my $tagfield = '';
+    my $table = '';
+    # if there are no multifields then... um?
+    if (!$self->{multi_fields} or scalar @{$self->{multi_fields}} == 0)
     {
-        $self->do_connect();
-        my $table = $self->{primary_table} . '_info';
+    }
+    # if there's only one multi-field, then that's it
+    elsif ($self->{multi_fields} and scalar @{$self->{multi_fields}} == 1)
+    {
+        $tagfield = $self->{multi_fields}->[0];
+        $table = "deep${tagfield}";
+    }
+    $self->do_connect();
 
-        my $tags = $self->_do_one_col_query("SELECT faceted_tags FROM $table ORDER BY faceted_tags;");
+    if ($tagfield and $table)
+    {
+        my $tags = $self->_do_one_col_query("SELECT DISTINCT $tagfield FROM $table ORDER BY $tagfield;");
         return $tags;
     }
-    return undef;
-} # get_faceted_tags
+} # get_all_tags
 
 =head2 query_by_tags
 
