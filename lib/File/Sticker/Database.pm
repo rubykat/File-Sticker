@@ -606,7 +606,17 @@ sub add_meta_to_db {
     # and do an INSERT or UPDATE depending on whether it does.
     # This is faster than REPLACE because it doesn't need
     # to rebuild indexes.
-    my $fullname = path($filename)->realpath->stringify;
+    my $fullname = $filename;
+    if (-f $filename)
+    {
+        $fullname = path($filename)->realpath->stringify;
+    }
+    else
+    {
+        # Can't use realpath if the file isn't there
+        # But we need to be able to do this if we're deleting removed files
+        $fullname = path($filename)->absolute->stringify;
+    }
     my $file_id = $self->get_file_id($fullname);
     say STDERR "file_id=$file_id" if $self->{verbose} > 1;
     my $q;
