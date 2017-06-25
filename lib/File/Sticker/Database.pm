@@ -351,25 +351,44 @@ Return a list of all the tags from the appropriate "deep*" table.
 sub get_all_tags {
     my $self = shift;
 
-    my $tagfield = '';
-    my $table = '';
+    $self->do_connect();
+
     # if there are no multifields then... um?
     if (!$self->{multi_fields} or scalar @{$self->{multi_fields}} == 0)
     {
+        say STDERR Dump($self->{multi_fields});
     }
     # if there's only one multi-field, then that's it
     elsif ($self->{multi_fields} and scalar @{$self->{multi_fields}} == 1)
     {
-        $tagfield = $self->{multi_fields}->[0];
-        $table = "deep${tagfield}";
-    }
-    $self->do_connect();
-
-    if ($tagfield and $table)
-    {
-        my $tags = $self->_do_one_col_query("SELECT DISTINCT $tagfield FROM $table ORDER BY $tagfield;");
+        my $tf = $self->{multi_fields}->[0];
+        my $table = "deep${tf}";
+        my $tags = $self->_do_one_col_query("SELECT DISTINCT $tf FROM $table ORDER BY $tf;");
         return $tags;
     }
+    elsif ($self->{multi_fields} and scalar @{$self->{multi_fields}} > 1)
+    {
+        my @tags = ();
+        foreach my $t (@{$self->{multi_fields}})
+        {
+            my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM deep${t} ORDER BY $t;");
+            if ($self->{tagprefix})
+            {
+                my @prefixed_tags = map { "${t}-$_" } @{$these_tags};
+                push @tags, @prefixed_tags;
+            }
+            else
+            {
+                push @tags, @{$these_tags};
+            }
+        }
+        return \@tags;
+    }
+    else
+    {
+        say STDERR Dump($self->{multi_fields});
+    }
+
 } # get_all_tags
 
 =head2 query_by_tags
