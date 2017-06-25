@@ -215,6 +215,7 @@ sub do_stuff {
             {
                 if ($opts->{add})
                 {
+                    print STDERR Dump($opts->{add}) if $opts->{verbose} > 1;
                     foreach my $fn (keys %{$opts->{add}})
                     {
                         $sticker->add_field_to_file(
