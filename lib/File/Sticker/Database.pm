@@ -257,7 +257,17 @@ sub get_file_id ($$) {
 
     my $dbh = $self->do_connect();
 
-    my $fullname = path($filename)->realpath->stringify;
+    my $fullname = $filename;
+    if (-f $filename)
+    {
+        $fullname = path($filename)->realpath->stringify;
+    }
+    else
+    {
+        # Can't use realpath if the file isn't there
+        # But we need to be able to do this if we're deleting removed files
+        $fullname = path($filename)->absolute->stringify;
+    }
     say STDERR "fullname=$fullname" if $self->{verbose} > 2;
 
     my $q = 'SELECT fileid FROM ' . $self->{primary_table} . ' WHERE file = ?';
