@@ -337,6 +337,20 @@ sub overlooked_files {
     return \@overlooked;
 } # overlooked_files
 
+=head2 list_tags
+
+List the faceted-tags from the info table in the database.
+
+    my @tags = @{$sticker->list_tags()};
+
+=cut
+sub list_tags {
+    my $self = shift;
+
+    my $tags = $self->{db}->get_faceted_tags();
+    return $tags;
+} # list_tags
+
 =head2 update_db
 
 Add/Update the given files into the database.

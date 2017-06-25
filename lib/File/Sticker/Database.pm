@@ -341,6 +341,27 @@ sub get_all_files {
     return $files;
 } # get_all_files
 
+=head2 get_faceted_tags
+
+Return a list of all the faceted-tags in the info table.
+
+    my @tags = @{$db->get_faceted_tags()};
+
+=cut
+sub get_faceted_tags {
+    my $self = shift;
+
+    if ($self->{taggable_fields})
+    {
+        $self->do_connect();
+        my $table = $self->{primary_table} . '_info';
+
+        my $tags = $self->_do_one_col_query("SELECT faceted_tags FROM $table ORDER BY faceted_tags;");
+        return $tags;
+    }
+    return undef;
+} # get_faceted_tags
+
 =head2 query_by_tags
 
 Use +tag -tag nomenclature for searching the database for matching files.

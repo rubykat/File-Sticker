@@ -18,6 +18,7 @@ sticker - add Xtra data (meta-data) to files or populate a database with file me
 
     sticker --query query-string ...
     sticker --list file ...
+    sticker --tags
 
     sticker --removed file ...
     sticker --update file ...
@@ -115,6 +116,7 @@ sub process_args () {
                'overlooked',
                'update',
                'list',
+               'tags',
                'derive!',
                'extract!',
                'from_file=s',
@@ -181,6 +183,11 @@ sub do_stuff {
     {
         my $files = $sticker->overlooked_files(@ARGV);
         say join("\n", @{$files});
+    }
+    if ($opts->{tags})
+    {
+        my $tags = $sticker->list_tags();
+        say join("\n", @{$tags});
     }
 
     if ($opts->{removed}
