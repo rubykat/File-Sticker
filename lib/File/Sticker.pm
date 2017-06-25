@@ -501,13 +501,16 @@ sub derive_values {
             $meta->{"section${id}"} = $bits[$i];
         }
     }
-    my $stat = $fp->stat;
-    $meta->{filesize} = $stat->size;
-
-    $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
-    if (!$meta->{linkdate})
+    if (-f $filename)
     {
-        $meta->{linkdate} = $meta->{filedate};
+        my $stat = $fp->stat;
+        $meta->{filesize} = $stat->size;
+
+        $meta->{filedate} = strftime '%Y-%m-%d %H:%M:%S', localtime $stat->mtime;
+        if (!$meta->{linkdate})
+        {
+            $meta->{linkdate} = $meta->{filedate};
+        }
     }
 
     return $meta;
