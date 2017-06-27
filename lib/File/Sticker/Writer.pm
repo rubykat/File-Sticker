@@ -331,30 +331,21 @@ sub update_multival_field {
     }
     else
     {
-        # allow for multiple values, comma-separated
-        my @vals = ($value);
-        if ($value =~ /,/)
+        if ($prefix eq '-')
         {
-            @vals = split(/,/, $value);
+            $self->delete_multival_from_file(
+                filename=>$filename,
+                field=>$field,
+                value=>$value,
+                old_vals=>$old_vals);
         }
-        foreach my $v (@vals)
+        else
         {
-            if ($prefix eq '-')
-            {
-                $self->delete_multival_from_file(
-                    filename=>$filename,
-                    field=>$field,
-                    value=>$v,
-                    old_vals=>$old_vals);
-            }
-            else
-            {
-                $self->add_multival_to_file(
-                    filename=>$filename,
-                    field=>$field,
-                    value=>$v,
-                    old_vals=>$old_vals);
-            }
+            $self->add_multival_to_file(
+                filename=>$filename,
+                field=>$field,
+                value=>$value,
+                old_vals=>$old_vals);
         }
     }
 } # update_multival_field
@@ -378,13 +369,22 @@ sub add_multival_to_file {
 
     my $filename = $args{filename};
     my $fname = $args{field};
-    my $tval = $args{value};
     my $old_vals = $args{old_vals};
 
-    # add a new tval to existing taglike-values
-    my %th = ();
-    $th{$tval} = 1;
+    # allow for multiple values, comma-separated
+    my @vals = ($args{value});
+    if ($args{value} =~ /,/)
+    {
+        @vals = split(/,/, $args{value});
+    }
 
+    # add new value(s) to existing taglike-values
+    my %th = ();
+
+    foreach my $t (@vals)
+    {
+        $th{$t} = 1;
+    }
     my @old_values = ();
     if (ref $old_vals eq 'ARRAY')
     {
@@ -425,9 +425,20 @@ sub delete_multival_from_file ($%) {
     say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
 
     my $filename = $args{filename};
-    my $tval = $args{value};
     my $fname = $args{field};
     my $old_vals = $args{old_vals};
+
+    # allow for multiple values, comma-separated
+    my @vals = ($args{value});
+    if ($args{value} =~ /,/)
+    {
+        @vals = split(/,/, $args{value});
+    }
+    my %to_delete = ();
+    foreach my $t (@vals)
+    {
+        $to_delete{$t} = 1;
+    }
 
     # remove value from existing values
     my %th = ();
@@ -443,7 +454,7 @@ sub delete_multival_from_file ($%) {
     }
     foreach my $t (@old_values)
     {
-        if ($t ne $tval)
+        if (! exists $to_delete{$t})
         {
             $th{$t} = 1;
         }
