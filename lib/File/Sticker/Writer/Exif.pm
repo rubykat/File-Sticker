@@ -129,11 +129,13 @@ sub replace_one_field {
         if (ref $value eq 'ARRAY')
         {
             $success = $et->SetNewValue('Keywords', $value);
+            $success = $et->SetNewValue('Subject', $value);
         }
         else
         {
             my @tags = split(/,/,$value);
             $success = $et->SetNewValue('Keywords', \@tags);
+            $success = $et->SetNewValue('Subject', \@tags);
         }
     }
 

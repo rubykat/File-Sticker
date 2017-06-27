@@ -125,7 +125,7 @@ sub read_meta {
             {
                 $meta{'description'} = $val;
             }
-            elsif ($key eq 'Keywords' or ($is_gutenberg_book and $key eq 'Subject'))
+            elsif ($key eq 'Keywords' or $key eq 'Subject')
             {
                 my @tags;
                 if ($is_gutenberg_book)
