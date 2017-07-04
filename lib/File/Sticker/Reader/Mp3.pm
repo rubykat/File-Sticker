@@ -100,6 +100,7 @@ sub read_meta {
     foreach my $key (sort keys %{$info})
     {
         my $val = $info->{$key};
+        say STDERR "$key=", $val->[0] if $self->{verbose} > 2;
         if ($key eq 'album')
         {
             $meta{'title'} = $val->[0];

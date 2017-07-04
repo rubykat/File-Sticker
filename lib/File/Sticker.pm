@@ -287,8 +287,11 @@ sub query_one_file {
     my $self = shift;
     my $file = shift;
 
-    my $meta = $self->{db}->get_file_meta($file);
-    return $meta;
+    if ($self->{db})
+    {
+        return $self->{db}->get_file_meta($file);
+    }
+    return undef;
 } # query_one_file
 
 =head2 missing_files
