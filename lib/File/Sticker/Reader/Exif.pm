@@ -68,7 +68,15 @@ sub known_fields {
         title=>'TEXT',
         url=>'TEXT',
         creator=>'TEXT',
+        date=>'TEXT',
         description=>'TEXT',
+        copyright=>'TEXT',
+        filesize=>'TEXT',
+        flash=>'TEXT',
+        imagesize=>'TEXT',
+        imageheight=>'NUMBER',
+        imagewidth=>'NUMBER',
+        megapixels=>'NUMBER',
         location=>'TEXT',
         tags=>'MULTI'};
 } # known_fields
@@ -89,75 +97,127 @@ sub read_meta {
     $filename = $self->_get_the_real_file(filename=>$filename);
     my $info = ImageInfo($filename);
     my %meta = ();
+
+    # Check if this is a Gutenberg book; they have quirks.
     my $is_gutenberg_book = 0;
     if ($info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
     {
         $is_gutenberg_book = 1;
+        # If this is a Gutenberg book, the Identifier holds the correct URL
+        $meta{'url'} = $info->{'Identifier'};
     }
-    foreach my $key (sort keys %{$info})
+    # There are multiple fields which could be used as a file "description".
+    # Check through them until you find a non-empty one.
+    my $description = '';
+    foreach my $field (qw(Description Caption-Abstract Comment ImageDescription UserComment))
     {
-        my $val = $info->{$key};
-        $val =~ s/\n$//; # remove trailing newlines
-        if ($val)
+        if (exists $info->{$field} and $info->{$field} and !$description)
         {
-            if ($key eq 'Source')
-            {
-                $meta{'url'} = $val;
-                if ($info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
-                {
-                    # the gutenberg identifier is better than the gutenberg source
-                    $meta{'url'} = $info->{'Identifier'};
-                }
-            }
-            elsif ($key eq 'Creator')
-            {
-                $meta{'creator'} = $val;
-            }
-            elsif ($key eq 'Title')
-            {
-                $meta{'title'} = $val;
-            }
-            elsif ($key eq 'Location')
-            {
-                $meta{'location'} = $val;
-            }
-            elsif ($key =~ /comment|description/i)
-            {
-                $meta{'description'} = $val;
-            }
-            elsif ($key eq 'Keywords' or $key eq 'Subject')
-            {
-                my @tags;
-                if ($is_gutenberg_book)
-                {
-                    # gutenberg tags are multi-word, separated by comma-space or ' -- '
-                    # and can have parens in them
-                    $val =~ s/\(//g;
-                    $val =~ s/\)//g;
-                    $val =~ s/\s--\s/,/g;
-                    @tags = split(/,\s?/, $val);
-                }
-                else
-                {
-                    @tags = split(/,\s*/, $val);
-                }
+            $description = $info->{$field};
+            $description =~ s/\n$//; # remove trailing newlines
+        }
+    }
+    $meta{description} = $description if $description;
+    # There are multiple fields which could be used as a file content creator.
+    # Check through them until you find a non-empty one.
+    my $creator = '';
+    foreach my $field (qw(Author Artist Creator))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$creator)
+        {
+            $creator = $info->{$field};
+        }
+    }
+    $meta{creator} = $creator if $creator;
 
-                if ($meta{tags})
-                {
-                    push @tags, split(/,\s*/, $meta{tags}); # don't forget previous ones
-                }
-                my %tagdup = (); # remove any duplicates
-                foreach my $t (@tags)
-                {
-                    if ($t)
-                    {
-                        $tagdup{$t}++;
-                    }
-                }
-                $meta{'tags'} = join(',', sort keys %tagdup);
+    # There are multiple fields which could be used as a copyright notice.
+    # Check through them until you find a non-empty one.
+    my $copyright = '';
+    foreach my $field (qw(License Rights))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$copyright)
+        {
+            $copyright = $info->{$field};
+        }
+    }
+    $meta{copyright} = $copyright if $copyright;
+
+    # The URL could be from the Source or the Identifier
+    # Check through them until you find a non-empty one which contains an actual URL
+    foreach my $field (qw(Source Identifier))
+    {
+        if (exists $info->{$field}
+                and $info->{$field}
+                and $info->{$field} =~ /^http/
+                and !exists $meta{url})
+        {
+            $meta{url} = $info->{$field};
+        }
+    }
+
+    # There are multiple fields which could be used as a file date.
+    # Check through them until you find a non-empty one.
+    my $date = '';
+    foreach my $field (qw(CreateDate DateTimeOriginal Date PublishedDate PublicationDate))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$date)
+        {
+            $date = $info->{$field};
+        }
+    }
+    $meta{date} = $date if $date;
+
+    # Use a consistent naming for tag fields.
+    # Combine the tag-like fields together.
+    # Put them in a hash because there might be duplicates
+    my %tags = ();
+    foreach my $field (qw(Keywords Subject))
+    {
+        if (exists $info->{$field} and $info->{$field})
+        {
+            my @tags;
+            if ($is_gutenberg_book)
+            {
+                # gutenberg tags are multi-word, separated by comma-space or ' -- '
+                # and can have parens in them
+                $val =~ s/\(//g;
+                $val =~ s/\)//g;
+                $val =~ s/\s--\s/,/g;
+                @tags = split(/,\s?/, $val);
             }
-        } # if $val
-    } # for each key
+            else
+            {
+                @tags = split(/,\s*/, $val);
+            }
+            foreach my $t (@tags)
+            {
+                $t =~ s/ - / /g; # remove isolated dashes
+                $t =~ s/[^\w\s,-]//g; # remove non-word characters
+                $tags{$t}++;
+            }
+        }
+    }
+    $meta{tags} = join('|', sort keys %tags);
+    delete $meta{tags} if !$meta{tags}; # remove empty tag-field
+
+    # There are SOOOOOO many fields in EXIF data, just remember a subset of them
+    foreach my $field (qw(
+FileSize
+Flash
+ImageHeight
+ImageSize
+ImageWidth
+Megapixels
+PageCount
+Location
+Title
+))
+    {
+        if (exists $info->{$field} and $info->{$field})
+        {
+            $meta{lc($field)} = $info->{$field};
+        }
+    }
 
     return \%meta;
 } # read_meta
