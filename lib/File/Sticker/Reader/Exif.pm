@@ -100,7 +100,8 @@ sub read_meta {
 
     # Check if this is a Gutenberg book; they have quirks.
     my $is_gutenberg_book = 0;
-    if ($info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
+    if (exists $info->{Identifier}
+            and $info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
     {
         $is_gutenberg_book = 1;
         # If this is a Gutenberg book, the Identifier holds the correct URL
@@ -175,6 +176,7 @@ sub read_meta {
     {
         if (exists $info->{$field} and $info->{$field})
         {
+            my $val = $info->{$field};
             my @tags;
             if ($is_gutenberg_book)
             {
