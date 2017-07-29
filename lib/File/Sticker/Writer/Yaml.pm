@@ -55,7 +55,9 @@ sub allowed_file {
     }
 
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if ($ft->{mime_type} eq 'text/plain'
+    # For some unfathomable reason, not every YAML file is recognised as text/plain
+    # so just check for text
+    if ($ft->{mime_type} =~ m{^text/}
             and $file =~ /\.yml$/)
     {
         return 1;

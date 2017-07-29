@@ -43,7 +43,9 @@ sub allowed_file {
     say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if ($ft->{mime_type} eq 'text/plain'
+    # For some unfathomable reason, not every YAML file is recognised as text/plain
+    # so just check for text
+    if ($ft->{mime_type} =~ m{^text/}
             and $file =~ /\.yml$/)
     {
         say STDERR 'Reader ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
