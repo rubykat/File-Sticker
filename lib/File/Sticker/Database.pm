@@ -151,6 +151,8 @@ sub create_tables ($) {
     # This has the same as the primary_table, plus a faceted_tags field
     # which combines the taggable information into one big collection
     # of faceted tags.
+    # The taggable_fields hash contains the field names, and the prefix
+    # for the field, if one is desired.
     # ----------------------------------------------------------
     if ($self->{taggable_fields})
     {
@@ -159,15 +161,16 @@ sub create_tables ($) {
         # create the faceted_tags field
         $q .= ", replace(";
         my @tagdefs = ();
-        foreach my $fn (@{$self->{taggable_fields}})
+        foreach my $fn (sort keys %{$self->{taggable_fields}})
         {
+            my $prefix = $self->{taggable_fields}->{$fn};
             if ($self->{wanted_fields}->{$fn} =~ /multi/i)
             {
-                push @tagdefs, " ifnull('|$fn-' || replace($fn, '|', '|$fn-'), '')";
+                push @tagdefs, " ifnull('|$prefix' || replace($fn, '|', '|$prefix'), '')";
             }
             else # single-valued
             {
-                push @tagdefs, " ifnull('|$fn-' || $fn, '')";
+                push @tagdefs, " ifnull('|$prefix' || $fn, '')";
             }
         }
         $q .= join(' || ', @tagdefs);

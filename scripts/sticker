@@ -110,7 +110,7 @@ sub process_args () {
                'tagfield=s',
 	       'wanted_fields=s%',
 	       'field_order=s@',
-	       'taggable_fields=s@',
+	       'taggable_fields=s%',
                'tagprefix!',
                'query',
                'removed|rm',
