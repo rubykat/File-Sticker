@@ -199,8 +199,15 @@ sub read_meta {
             }
         }
     }
-    $meta{tags} = join('|', sort keys %tags);
-    delete $meta{tags} if !$meta{tags}; # remove empty tag-field
+    # Make the tags an array, not a string
+    if (keys %tags)
+    {
+        $meta{tags} = [sort keys %tags];
+    }
+    else # remove empty tag-field
+    {
+        delete $meta{tags};
+    }
 
     # There are SOOOOOO many fields in EXIF data, just remember a subset of them
     foreach my $field (qw(
