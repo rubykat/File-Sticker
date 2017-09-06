@@ -256,11 +256,13 @@ sub do_stuff {
             }
             elsif ($opts->{list})
             {
-                print_meta($opts,sticker=>$sticker,filename=>$file);
-                my $meta = $sticker->query_one_file($file);
-                if ($meta)
+                say "== $file ==";
+                my $file_meta = $sticker->read_meta($file);
+                print Dump($file_meta);
+                my $db_meta = $sticker->query_one_file($file);
+                if ($db_meta)
                 {
-                    print $file, ': ', Dump($meta), "\n";
+                    print $file, ': ', Dump($db_meta), "\n";
                 }
             }
         }
