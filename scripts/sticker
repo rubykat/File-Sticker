@@ -17,7 +17,8 @@ sticker - add Xtra data (meta-data) to files or populate a database with file me
     sticker --overlooked file ...
 
     sticker --query query-string ...
-    sticker --list file ...
+    sticker --file_info file ...
+    sticker --db_info file ...
     sticker --tags
 
     sticker --removed file ...
@@ -63,6 +64,15 @@ Extract metadata in other formats (e.g. EXIF data) and save as extended attribut
 =item --from_file I<filename>
 
 Extract metadata in other formats (e.g. EXIF data) from one file and save as extended attributes in another file.
+
+=item --db_info
+
+Show the information about the given file from the database.
+
+=item --file_info
+
+Show the metadata information of the given file(s), from the files.
+This option is for when the file is not yet in the database, or has not yet been updated after a change.
 
 =item --query I<string>
 
@@ -117,7 +127,8 @@ sub process_args () {
                'missing',
                'overlooked',
                'update',
-               'list',
+               'db_info|dinfo',
+               'file_info|finfo',
                'tags',
                'settings=s',
                'derive!',
@@ -198,7 +209,8 @@ sub do_stuff {
             or $opts->{delete}
             or $opts->{extract}
             or $opts->{from_file}
-            or $opts->{list})
+            or $opts->{db_info}
+            or $opts->{file_info})
     {
         #
         # This invocation is a per-file operation.
@@ -254,16 +266,16 @@ sub do_stuff {
                     print_meta($opts,sticker=>$sticker,filename=>$file);
                 }
             }
-            elsif ($opts->{list})
+            elsif ($opts->{db_info})
             {
-                say "== $file ==";
-                my $file_meta = $sticker->read_meta($file);
-                print Dump($file_meta);
                 my $db_meta = $sticker->query_one_file($file);
-                if ($db_meta)
-                {
-                    print $file, ': ', Dump($db_meta), "\n";
-                }
+                say $file, ': ', Dump($db_meta) if $db_meta;
+            }
+            elsif ($opts->{file_info})
+            {
+                my $file_meta = $sticker->read_meta($file);
+                say "== $file ==";
+                print Dump($file_meta);
             }
         }
     }
