@@ -69,6 +69,7 @@ sub known_fields {
         description=>'TEXT',
         song=>'TEXT',
         url=>'TEXT',
+        genre=>'TEXT',
         tags=>'MULTI'};
 } # known_fields
 
@@ -93,7 +94,6 @@ sub read_meta {
     # artist => dublincore.creator
     # comment => dublincore.description
     # Skip the following fields: track
-    # The following fields go into tags: genre
     my $comment;
     my $info = $mp3->autoinfo(1);
     my @tags = ();
@@ -120,6 +120,10 @@ sub read_meta {
         elsif ($key eq 'year')
         {
             $meta{'year'} = $val->[0];
+        }
+        elsif ($key eq 'genre')
+        {
+            $meta{'genre'} = $val->[0];
         }
         elsif ($key =~ /track/)
         {
