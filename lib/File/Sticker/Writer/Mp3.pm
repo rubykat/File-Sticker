@@ -66,6 +66,7 @@ sub known_fields {
         description=>'TEXT',
         creator=>'TEXT',
         author=>'TEXT',
+        genre=>'TEXT',
         song=>'TEXT',
         url=>'TEXT',
         tags=>'MULTI'};
@@ -110,6 +111,10 @@ sub replace_one_field {
     elsif ($field eq 'creator')
     {
         $mp3->artist_set($value);
+    }
+    elsif ($field eq 'genre')
+    {
+        $mp3->genre_set($value);
     }
     elsif ($field eq 'author')
     {
