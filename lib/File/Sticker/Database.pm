@@ -24,6 +24,7 @@ use Carp;
 use DBI;
 use Search::Query;
 use Path::Tiny;
+use YAML::Any;
 
 # FOR DEBUGGING
 sub whoami  { ( caller(1) )[3] }
@@ -366,26 +367,57 @@ sub get_all_tags {
 
     $self->do_connect();
 
-    # if there are no multifields then... um?
-    if (!$self->{multi_fields} or scalar @{$self->{multi_fields}} == 0)
+    # Tags are either in multi_fields or in taggable_fields, or both
+    # if there are no multifields and no taggable fields then... um?
+    if ((!$self->{multi_fields} or scalar @{$self->{multi_fields}} == 0)
+            and (!$self->{taggable_fields}))
     {
         say STDERR Dump($self->{multi_fields});
+        return;
     }
-    # if there's only one multi-field, then that's it
-    elsif ($self->{multi_fields} and scalar @{$self->{multi_fields}} == 1)
+
+    # Process the multi_fields first, since they have to be read from the deep_* tables
+    my %mt_fields = ();
+    my @tags = ();
+    foreach my $t (@{$self->{multi_fields}})
     {
-        my $tf = $self->{multi_fields}->[0];
-        my $table = "deep${tf}";
-        my $tags = $self->_do_one_col_query("SELECT DISTINCT $tf FROM $table ORDER BY $tf;");
-        return $tags;
-    }
-    elsif ($self->{multi_fields} and scalar @{$self->{multi_fields}} > 1)
-    {
-        my @tags = ();
-        foreach my $t (@{$self->{multi_fields}})
+        $mt_fields{$t} = 1; # remember this has been processed
+        say STDERR "MT=$t" if $self->{verbose} > 1;
+        my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM deep${t} ORDER BY $t;");
+        if (exists $self->{taggable_fields}->{$t} and $self->{taggable_fields}->{$t}) # has a prefix
         {
-            my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM deep${t} ORDER BY $t;");
-            if ($self->{tagprefix})
+            my $pr = $self->{taggable_fields}->{$t};
+            my @prefixed_tags = map { "${pr}$_" } @{$these_tags};
+            push @tags, @prefixed_tags;
+        }
+        elsif ($self->{tagprefix}) # simple prefix
+        {
+            my @prefixed_tags = map { "${t}-$_" } @{$these_tags};
+            push @tags, @prefixed_tags;
+        }
+        else
+        {
+            push @tags, @{$these_tags};
+        }
+    }
+    say STDERR "MT tags:", Dump(@tags) if $self->{verbose} > 1;
+
+    # Now process the taggable_fields which are not multi_fields.
+    # These have to be looked up in the primary table.
+    my $primary_table = $self->{primary_table};
+    foreach my $t (keys %{$self->{taggable_fields}})
+    {
+        say STDERR "TT=$t" if $self->{verbose} > 1;
+        if (!$mt_fields{$t}) # not a multi-field
+        {
+            my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM ${primary_table} ORDER BY $t;");
+            if (exists $self->{taggable_fields}->{$t} and $self->{taggable_fields}->{$t}) # has a prefix
+            {
+                my $pr = $self->{taggable_fields}->{$t};
+                my @prefixed_tags = map { "${pr}$_" } @{$these_tags};
+                push @tags, @prefixed_tags;
+            }
+            elsif ($self->{tagprefix}) # simple prefix
             {
                 my @prefixed_tags = map { "${t}-$_" } @{$these_tags};
                 push @tags, @prefixed_tags;
@@ -395,12 +427,12 @@ sub get_all_tags {
                 push @tags, @{$these_tags};
             }
         }
-        return \@tags;
     }
-    else
-    {
-        say STDERR Dump($self->{multi_fields});
-    }
+    @tags = sort @tags;
+
+    say STDERR "Sorted tags:", Dump(@tags) if $self->{verbose} > 1;
+
+    return \@tags;
 
 } # get_all_tags
 
