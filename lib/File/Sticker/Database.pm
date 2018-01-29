@@ -26,7 +26,13 @@ use Search::Query;
 use Path::Tiny;
 use YAML::Any;
 
-# FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS

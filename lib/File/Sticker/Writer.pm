@@ -23,6 +23,13 @@ use common::sense;
 use File::LibMagic;
 
 # FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
@@ -148,13 +155,17 @@ sub allowed_fields {
     if (exists $self->{wanted_fields}
             and defined $self->{wanted_fields})
     {
-        # the known fields must be a subset of the wanted fields
+        # the wanted fields must be a subset of the (known fields + readonly fields)
         my $known_fields = $self->known_fields();
+        my $readonly_fields = $self->readonly_fields();
         foreach my $fn (keys %{$self->{wanted_fields}})
         {
-            if (!exists $known_fields->{$fn}
-                    or !defined $known_fields->{$fn}
-                    or !$known_fields->{$fn})
+            if ((!exists $known_fields->{$fn}
+                        or !defined $known_fields->{$fn}
+                        or !$known_fields->{$fn})
+                    and (!exists $readonly_fields->{$fn}
+                        or !defined $readonly_fields->{$fn}
+                        or !$readonly_fields->{$fn}))
             {
                 $okay = 0;
                 last;
@@ -184,6 +195,23 @@ sub known_fields {
 
     return undef;
 } # known_fields
+
+=head2 readonly_fields
+
+Returns the fields which this writer knows about, which can't be overwritten,
+but are allowed to be "wanted" fields. Things like file-size etc.
+
+This must be overridden by the specific writer class.
+
+    my $readonly_fields = $writer->readonly_fields();
+
+=cut
+
+sub readonly_fields {
+    my $self = shift;
+
+    return undef;
+} # readonly_fields
 
 =head2 add_field_to_file
 

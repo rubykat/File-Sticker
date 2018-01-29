@@ -35,6 +35,13 @@ search_path => ['File::Sticker::Writer'],
 sub_name => 'writers';
 
 # FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS

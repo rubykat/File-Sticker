@@ -26,6 +26,13 @@ use MP3::Tag;
 use parent qw(File::Sticker::Reader);
 
 # FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
@@ -169,8 +176,6 @@ sub read_meta {
 
     return \%meta;
 } # read_meta
-
-=cut
 
 =head1 BUGS
 

@@ -27,6 +27,13 @@ use File::Spec;
 use parent qw(File::Sticker::Reader);
 
 # FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
@@ -256,7 +263,6 @@ sub _get_the_real_file {
     }
     return $filename;
 } # _get_the_real_file
-=cut
 
 =head1 BUGS
 

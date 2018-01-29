@@ -26,6 +26,13 @@ use MP3::Tag;
 use parent qw(File::Sticker::Writer);
 
 # FOR DEBUGGING
+=head1 DEBUGGING
+
+=head2 whoami
+
+Used for debugging info
+
+=cut
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
@@ -71,6 +78,21 @@ sub known_fields {
         url=>'TEXT',
         tags=>'MULTI'};
 } # known_fields
+
+=head2 readonly_fields
+
+Returns the fields which this writer knows about, which can't be overwritten,
+but are allowed to be "wanted" fields. Things like file-size etc.
+
+    my $readonly_fields = $writer->readonly_fields();
+
+=cut
+
+sub readonly_fields {
+    my $self = shift;
+
+    return {};
+} # readonly_fields
 
 =head1 Helper Functions
 
