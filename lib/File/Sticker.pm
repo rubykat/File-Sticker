@@ -89,7 +89,7 @@ sub new {
     # Writers
     my @writers = ();
     my @fallback_writers = ();
-    foreach my $wt (@{$self->writers()})
+    foreach my $wt ($self->writers())
     {
         print STDERR "WRITER: ", $wt->name(), "\n" if $self->{verbose} > 1;
 	$wt->init(%new_args);
