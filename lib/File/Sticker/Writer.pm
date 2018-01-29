@@ -22,7 +22,6 @@ nomenclature.
 use common::sense;
 use File::LibMagic;
 
-# FOR DEBUGGING
 =head1 DEBUGGING
 
 =head2 whoami
@@ -89,6 +88,21 @@ sub name {
     my @bits = split('::', $fullname);
     return pop @bits;
 } # name
+
+=head2 is_fallback
+
+Is this writer a fallback writer (to be used when others don't work)?
+This is mainly to prevent Xattr attributes being set when they don't need to be,
+because we don't want duplicate information stored in two different ways.
+(default: 0)
+
+=cut
+
+sub is_fallback {
+    my $self = shift;
+    
+    return 0;
+} # is_fallback
 
 =head2 allow
 

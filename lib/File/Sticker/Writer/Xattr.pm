@@ -38,6 +38,20 @@ sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
+=head2 is_fallback
+
+Is this writer a fallback writer (to be used when others don't work)?
+This is mainly to prevent Xattr attributes being set when they don't need to be,
+because we don't want duplicate information stored in two different ways.
+
+=cut
+
+sub is_fallback {
+    my $self = shift;
+    
+    return 1;
+} # is_fallback
+
 =head2 allowed_file
 
 If this writer can be used for the given file, then this returns true.

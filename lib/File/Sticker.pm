@@ -87,13 +87,23 @@ sub new {
 
     # -------------------------------------
     # Writers
-    my @writers = $self->writers();
-    foreach my $wt (@writers)
+    my @writers = ();
+    my @fallback_writers = ();
+    foreach my $wt (@{$self->writers()})
     {
         print STDERR "WRITER: ", $wt->name(), "\n" if $self->{verbose} > 1;
 	$wt->init(%new_args);
+        if ($wt->is_fallback())
+        {
+            push @fallback_writers, $wt;
+        }
+        else
+        {
+            push @writers, $wt;
+        }
     }
     $self->{_writers} = \@writers;
+    $self->{_fallback_writers} = \@fallback_writers;
 
     # -------------------------------------
     # Database (optional)
@@ -194,16 +204,33 @@ sub add_field_to_file {
         $value = $derived->{$field};
     }
 
+    my $writer_found = 0;
     foreach my $writer (@{$self->{_writers}})
     {
         if ($writer->allow($filename))
         {
+            $writer_found = 1;
             print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
             $writer->add_field_to_file(
                 filename=>$filename,
                 field=>$field,
                 value=>$value,
                 old_meta=>$old_meta);
+        }
+    }
+    if (!$writer_found)
+    {
+        foreach my $writer (@{$self->{_fallback_writers}})
+        {
+            if ($writer->allow($filename))
+            {
+                print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
+                $writer->add_field_to_file(
+                    filename=>$filename,
+                    field=>$field,
+                    value=>$value,
+                    old_meta=>$old_meta);
+            }
         }
     }
 }
@@ -225,7 +252,7 @@ sub delete_field_from_file {
     my $filename = $args{filename};
     my $field = $args{field};
 
-    foreach my $writer (@{$self->{_writers}})
+    foreach my $writer (@{$self->{_writers}}, @{$self->{_fallback_writers}})
     {
         if ($writer->allow($filename))
         {
@@ -258,11 +285,25 @@ sub replace_all_meta {
     {
         if ($writer->allow($filename))
         {
-            print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
             $okay = 1;
+            print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
             $writer->replace_all_meta(
                 filename=>$filename,
                 meta=>$meta);
+        }
+    }
+    if (!$okay)
+    {
+        foreach my $writer (@{$self->{_fallback_writers}})
+        {
+            if ($writer->allow($filename))
+            {
+                $okay = 1;
+                print STDERR "Writer ", $writer->name(), " can write $filename\n" if $self->{verbose} > 1;
+                $writer->replace_all_meta(
+                    filename=>$filename,
+                    meta=>$meta);
+            }
         }
     }
     return $okay;
