@@ -78,6 +78,10 @@ This option is for when the file is not yet in the database, or has not yet been
 
 Return the list of files matching the given tag(s).
 
+=item --quiet
+
+Make the output quiet (no output).
+
 =back
 
 =cut
@@ -122,7 +126,8 @@ sub process_args () {
 	       'field_order=s@',
 	       'taggable_fields=s%',
                'tagprefix!',
-               'query',
+               'query|q',
+               'quiet',
                'removed|rm',
                'missing',
                'overlooked',
@@ -304,6 +309,7 @@ MAIN: {
         tagfield=>$opts->{tagfield},
         tagprefix=>$opts->{tagprefix},
         verbose=>$opts->{verbose},
+        quiet=>$opts->{quiet},
     );
     if ($opts->{settings})
     {

@@ -418,7 +418,7 @@ sub update_db {
 
     foreach my $filename (@files)
     {
-        say $filename if $self->{verbose};
+        say $filename if !$self->{quiet};
         if (!$transaction_on)
         {
             $self->{db}->start_transaction();
