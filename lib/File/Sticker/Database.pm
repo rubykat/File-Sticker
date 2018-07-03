@@ -91,7 +91,8 @@ sub do_connect ($) {
 
 =head2 create_tables
 
-Create the tables for the database
+Create the tables for the database.
+Give them all prefixes so that multiple setups can use the same database.
 
 =cut
 sub create_tables ($) {
@@ -139,13 +140,14 @@ sub create_tables ($) {
     }
     foreach my $multi (@multi_fields)
     {
-        $q = "CREATE TABLE IF NOT EXISTS deep${multi} (fileid INTEGER NOT NULL, ${multi}, FOREIGN KEY(fileid) REFERENCES ${primary_table}(fileid));";
+        my $deep_table = $self->_deep_table_name(${multi});
+        $q = "CREATE TABLE IF NOT EXISTS ${deep_table} (fileid INTEGER NOT NULL, ${multi}, FOREIGN KEY(fileid) REFERENCES ${primary_table}(fileid));";
         $ret = $dbh->do($q);
         if (!$ret)
         {
             croak __PACKAGE__ . " failed '$q' : $DBI::errstr";
         }
-        $q = "CREATE UNIQUE INDEX IF NOT EXISTS deep${multi}_index ON deep${multi} (fileid, ${multi})";
+        $q = "CREATE UNIQUE INDEX IF NOT EXISTS ${deep_table}_index ON ${deep_table} (fileid, ${multi})";
         $ret = $dbh->do($q);
         if (!$ret)
         {
@@ -389,7 +391,8 @@ sub get_all_tags {
     {
         $mt_fields{$t} = 1; # remember this has been processed
         say STDERR "MT=$t" if $self->{verbose} > 1;
-        my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM deep${t} ORDER BY $t;");
+        my $deep_table = $self->_deep_table_name($t);
+        my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM ${deep_table} ORDER BY $t;");
         if (exists $self->{taggable_fields}->{$t} and $self->{taggable_fields}->{$t}) # has a prefix
         {
             my $pr = $self->{taggable_fields}->{$t};
@@ -555,7 +558,8 @@ sub delete_file_from_db ($$) {
         # remove from deep* tables first
         foreach my $t (@{$self->{multi_fields}})
         {
-            my $q = "DELETE FROM deep${t} WHERE fileid = ?;";
+            my $deep_table = $self->_deep_table_name($t);
+            my $q = "DELETE FROM ${deep_table} WHERE fileid = ?;";
             my $sth = $self->_prepare($q);
             my $ret = $sth->execute($file_id);
             if (!$ret)
@@ -689,7 +693,8 @@ sub add_meta_to_db {
         # and add the new tags below. I know, this is programmer laziness.
         foreach my $t (@{$self->{multi_fields}})
         {
-            $q = "DELETE FROM deep${t} WHERE fileid = ?;";
+            my $deep_table = $self->_deep_table_name($t);
+            $q = "DELETE FROM ${deep_table} WHERE fileid = ?;";
             my $sth = $self->_prepare($q);
             $ret = $sth->execute($file_id);
             if (!$ret)
@@ -729,7 +734,8 @@ sub add_meta_to_db {
         if (exists $multi_values{$field}
                 and defined $multi_values{$field})
         {
-            $q = "INSERT INTO deep${field} (fileid, ${field}) VALUES (?, ?);";
+            my $deep_table = $self->_deep_table_name($field);
+            $q = "INSERT INTO ${deep_table} (fileid, ${field}) VALUES (?, ?);";
             my $sth = $self->_prepare($q);
             my @values = @{$multi_values{$field}};
             foreach my $val (@values)
@@ -750,6 +756,18 @@ sub add_meta_to_db {
 Private interface.
 
 =cut
+
+=head2 _deep_table_name
+
+Return the name of the given deep_* table.
+
+=cut
+sub _deep_table_name {
+    my $self = shift;
+    my $field = shift;
+
+    return $self->{primary_table} . '_deep' . $field;
+} # _deep_table_name
 
 =head2 _do_one_col_query
 
