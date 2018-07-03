@@ -766,7 +766,7 @@ sub _deep_table_name {
     my $self = shift;
     my $field = shift;
 
-    return $self->{primary_table} . '_deep' . $field;
+    return $self->{primary_table} . '_deep_' . $field;
 } # _deep_table_name
 
 =head2 _do_one_col_query
