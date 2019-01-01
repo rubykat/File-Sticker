@@ -103,7 +103,14 @@ sub read_meta {
             if ($key eq 'tags')
             {
                 $meta{tags} = $val;
-                $meta{tags} =~ s/ /,/g; # spaces to commas
+                # If there are no commas, change spaces to commas.  This is
+                # because if we are using commas to separate, we allow
+                # multi-word tags with spaces in them, so we don't want to turn
+                # those spaces into commas!
+                if ($meta{tags} !~ /,/)
+                {
+                    $meta{tags} =~ s/ /,/g; # spaces to commas
+                }
             }
             elsif ($key eq 'dublincore.source')
             {
