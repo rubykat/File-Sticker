@@ -494,7 +494,7 @@ sub derive_values {
         $meta->{file} = $fp->absolute->stringify;
     }
     $meta->{basename} = $fp->basename();
-    $meta->{name} = $fp->basename(qr/\.\w+/);
+    $meta->{id_name} = $fp->basename(qr/\.\w+/);
     if ($meta->{basename} =~ /\.(\w+)$/)
     {
         $meta->{ext} = $1;
@@ -503,7 +503,7 @@ sub derive_values {
     # title
     if (!$meta->{title})
     {
-        my @words = wordsplit($meta->{name});
+        my @words = wordsplit($meta->{id_name});
         my $title = join(' ', @words);
         $title =~ s/(\w+)/\u\L$1/g; # title case
         $title =~ s/(\d+)$/ $1/; # trailing numbers
@@ -523,13 +523,13 @@ sub derive_values {
         # Check if a thumbnail exists
         # It could be a jpg or a png
         # Note that if the file itself is a jpg or png, we can use it as the thumbnail
-        if (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.jpg')
+        if (-r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.jpg')
         {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.jpg'
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.jpg'
         }
-        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{name} . '.png')
+        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.png')
         {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{name} . '.png'
+            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.png'
         }
         elsif ($meta->{ext} =~ /jpg|png|gif/)
         {
