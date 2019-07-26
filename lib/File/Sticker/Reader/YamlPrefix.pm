@@ -1,14 +1,14 @@
-package File::Sticker::Reader::Yaml-Prefix;
+package File::Sticker::Reader::YamlPrefix;
 
 =head1 NAME
 
-File::Sticker::Reader::Yaml-Prefix - read and standardize meta-data from YAML-prefixed text file
+File::Sticker::Reader::YamlPrefix - read and standardize meta-data from YAML-prefixed text file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Reader::Yaml-Prefix;
+    use File::Sticker::Reader::YamlPrefix;
 
-    my $obj = File::Sticker::Reader::Yaml-Prefix->new(%args);
+    my $obj = File::Sticker::Reader::YamlPrefix->new(%args);
 
     my %meta = $obj->read_meta($filename);
 
