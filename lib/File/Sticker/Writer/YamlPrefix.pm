@@ -253,7 +253,7 @@ sub _write_meta {
     my $filename = $args{filename};
     my $meta = $args{meta};
 
-    my $file_rest = $self->get_rest_of_file($filename);
+    my $file_rest = $self->_get_rest_of_file($filename);
     my $fh;
     if (!open($fh, '>', $filename))
     {
