@@ -118,7 +118,7 @@ sub read_meta {
         warn __PACKAGE__, " Load of data failed: $@";
         return \%meta;
     }
-    if (!$ydata)
+    if (!$info)
     {
         warn __PACKAGE__, " no legal YAML";
         return \%meta;
