@@ -47,7 +47,7 @@ sub whoami  { ( caller(1) )[3] }
 =head2 allowed_file
 
 If this reader can be used for the given file, then this returns true.
-File must be plain text and end with '.yml'
+File must be plain text and NOT end with '.yml'
 
 =cut
 
@@ -64,15 +64,7 @@ sub allowed_file {
             and $file !~ /\.yml$/)
     {
         # Now we actually have to check if the file begins with '---'
-        open(my $fh, "<", $file) or return 0;
-        my $firstline = <$fh>;
-        close $fh;
-        chomp $firstline;
-        if ($firstline eq '---')
-        {
-            say STDERR 'Reader ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
-            return 1;
-        }
+        return $self->_has_yaml($file);
     }
     return 0;
 } # allowed_file
@@ -109,7 +101,7 @@ sub read_meta {
     my $filename = shift;
     say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
-    my $yaml_str = $self->get_yaml_part($filename);
+    my $yaml_str = $self->_get_yaml_part($filename);
     my %meta = ();
     my $info;
     eval {$info = Load($yaml_str);};
@@ -174,13 +166,40 @@ sub read_meta {
     return \%meta;
 } # read_meta
 
-=head2 get_yaml_part
+=head1 Private Helper Functions
+
+Private interface, just this file
+
+=head2 _has_yaml
+
+The file has YAML if the FIRST line is '---'
+
+=cut
+sub _has_yaml {
+    my $self = shift;
+    my $filename = shift;
+
+    my $fh;
+    if (!open($fh, '<', $filename))
+    {
+        die __PACKAGE__, " Unable to open file '" . $filename ."': $!\n";
+    }
+
+    my $first_line = <$fh>;
+    close($fh);
+    return 0 if !$first_line;
+
+    chomp $first_line;
+    return ($first_line eq '---');
+} # _has_yaml
+
+=head2 _get_yaml_part
 
 Get the YAML part of the file (if any)
 by reading the stuff between the first set of --- lines
 
 =cut
-sub get_yaml_part {
+sub _get_yaml_part {
     my $self = shift;
     my $filename = shift;
     say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
@@ -212,7 +231,7 @@ sub get_yaml_part {
     }
     close($fh);
     return $yaml_str;
-}
+} # _get_yaml_part
 
 =head1 BUGS
 
