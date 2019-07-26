@@ -186,7 +186,7 @@ sub get_yaml_part {
     say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
     my $fh;
-    if (!open($fh, '<', $self->filename))
+    if (!open($fh, '<', $filename))
     {
         die __PACKAGE__, " Unable to open file '" . $filename ."': $!\n";
     }
