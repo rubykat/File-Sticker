@@ -112,7 +112,7 @@ sub read_meta {
     my $yaml_str = $self->get_yaml_part($filename);
     my %meta = ();
     my $info;
-    eval {$info = Load(encode('UTF-8', $yaml_str));};
+    eval {$info = Load($yaml_str);};
     if ($@)
     {
         warn __PACKAGE__, " Load of data failed: $@";
