@@ -244,6 +244,7 @@ sub _load_meta {
 
 Overwrites the file completely with the given metadata
 plus the rest of its contents
+This saves multi-value comma-separated fields as arrays.
 
 =cut
 sub _write_meta {
@@ -252,6 +253,18 @@ sub _write_meta {
 
     my $filename = $args{filename};
     my $meta = $args{meta};
+    # restore multi-value comma-separated fields to arrays
+    foreach my $fn (keys %{$self->{wanted_fields}})
+    {
+        if ($self->{wanted_fields}->{$fn} eq 'MULTI'
+                and exists $meta->{$fn}
+                and defined $meta->{$fn}
+                and $meta->{$fn} =~ /,/)
+        {
+            my @vals = split(/,/, $meta->{$fn});
+            $meta->{$fn} = \@vals;
+        }
+    }
 
     my $file_rest = $self->_get_rest_of_file($filename);
     my $fh;
@@ -261,7 +274,7 @@ sub _write_meta {
     }
     print $fh Dump($meta);
     print $fh "---\n";
-    print $file_rest;
+    print $fh $file_rest;
     close $fh;
 } # _write_meta
 
