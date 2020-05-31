@@ -375,16 +375,17 @@ sub get_all_tags {
 
     $self->do_connect();
 
-    # Tags are either in multi_fields or in taggable_fields, or both
-    # if there are no multifields and no taggable fields then... um?
-    if ((!$self->{multi_fields} or scalar @{$self->{multi_fields}} == 0)
-            and (!$self->{taggable_fields}))
+    # Tags are in taggable_fields. They may either be plain fields or multi_fields.
+    # Yes, there are multi_fields that aren't tags (such as multiple URLs).
+    # If there are no multifields and no taggable fields then... um?
+    if (!$self->{taggable_fields})
     {
         say STDERR Dump($self->{multi_fields});
         return;
     }
 
-    # Process the multi_fields first, since they have to be read from the deep_* tables
+    # Process the multi_fields first,
+    # since they have to be read from the deep_* tables
     my %mt_fields = ();
     my @tags = ();
     foreach my $t (@{$self->{multi_fields}})
@@ -393,20 +394,24 @@ sub get_all_tags {
         say STDERR "MT=$t" if $self->{verbose} > 1;
         my $deep_table = $self->_deep_table_name($t);
         my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM ${deep_table} ORDER BY $t;");
-        if (exists $self->{taggable_fields}->{$t} and $self->{taggable_fields}->{$t}) # has a prefix
+        # Only count as a tag if it is in taggable_fields
+        if (exists $self->{taggable_fields}->{$t})
         {
-            my $pr = $self->{taggable_fields}->{$t};
-            my @prefixed_tags = map { "${pr}$_" } @{$these_tags};
-            push @tags, @prefixed_tags;
-        }
-        elsif ($self->{tagprefix}) # simple prefix
-        {
-            my @prefixed_tags = map { "${t}-$_" } @{$these_tags};
-            push @tags, @prefixed_tags;
-        }
-        else
-        {
-            push @tags, @{$these_tags};
+            if ($self->{taggable_fields}->{$t}) # has a field-specific prefix
+            {
+                my $pr = $self->{taggable_fields}->{$t};
+                my @prefixed_tags = map { "${pr}$_" } @{$these_tags};
+                push @tags, @prefixed_tags;
+            }
+            elsif ($self->{tagprefix}) # simple prefix for all tags
+            {
+                my @prefixed_tags = map { "${t}-$_" } @{$these_tags};
+                push @tags, @prefixed_tags;
+            }
+            else
+            {
+                push @tags, @{$these_tags};
+            }
         }
     }
     say STDERR "MT tags:", Dump(@tags) if $self->{verbose} > 1;
