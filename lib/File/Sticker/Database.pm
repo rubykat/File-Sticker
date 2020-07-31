@@ -516,7 +516,7 @@ sub query_by_tags ($$$) {
                        }
                        return @newterms;
                    }
-                   return $term;
+                   return ($term);
                }
 
         );
