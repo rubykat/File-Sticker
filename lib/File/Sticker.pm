@@ -164,12 +164,13 @@ sub new {
 
 This will read the meta-data from the file, using all possible ways.
 
-    my $info = $fs->read_meta($filename);
+    my $info = $fs->read_meta(filename=>$filename,read_all=>0);
 
 =cut
 sub read_meta ($%) {
     my $self = shift;
-    my $filename = shift;
+    my %args = @_;
+    my $filename = $args{filename};
     say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
 
     if (!-r $filename)
@@ -193,6 +194,32 @@ sub read_meta ($%) {
             my $newmeta = $merge->merge($meta, $info);
             $meta = $newmeta;
             print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
+        }
+    }
+
+    # If we only want the wanted_fields, remove anything that isn't wanted
+    if (!$args{read_all}
+            and exists $self->{wanted_fields}
+            and defined $self->{wanted_fields})
+    {
+        my @fields = sort keys %{$meta};
+        foreach my $fn (@fields)
+        {
+            if (! exists $self->{wanted_fields}->{$fn})
+            {
+                delete $meta->{$fn};
+            }
+        }
+    }
+    else # read all, including derived values
+    {
+        my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
+        foreach my $field (sort keys %{$derived})
+        {
+            if (!exists $meta->{$field} and $derived->{$field})
+            {
+                $meta->{$field} = $derived->{$field};
+            }
         }
     }
 
@@ -222,7 +249,7 @@ sub add_field_to_file {
     {
         return undef;
     }
-    my $old_meta = $self->read_meta($filename);
+    my $old_meta = $self->read_meta(filename=>$filename,read_all=>0);
     my $derived = $self->derive_values(filename=>$filename,meta=>$old_meta);
     if ($self->{derive} and defined $derived->{$field})
     {
@@ -450,7 +477,7 @@ sub update_db {
             $transaction_on = 1;
             $num_trans = 0;
         }
-        my $meta = $self->read_meta($filename);
+        my $meta = $self->read_meta(filename=>$filename,read_all=>0);
 
         # If there are desired fields which are derivable
         # but which are not set in the file itself,
