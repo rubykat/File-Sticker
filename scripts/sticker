@@ -8,10 +8,12 @@ sticker - sticks tags onto files, populates a database with file meta-data
 
     sticker --help | --manpage | --version | --settings { schema | all | I<name> }
 
-    sticker [--verbose] [--derive] --add I<string>=I<string> file [file ...]
-    sticker [--verbose] --delete I<string> file [file ...]
-    sticker [--verbose] --extract file [file ...]
-    sticker [--verbose] --from_file I<otherfile> file [file ...]
+    sticker [--verbose] [--disable I<module> ] I<other options>
+
+    sticker [--derive] --add I<string>=I<string> file [file ...]
+    sticker --delete I<string> file [file ...]
+    sticker --extract file [file ...]
+    sticker --from_file I<otherfile> file [file ...]
 
     sticker --missing
     sticker --overlooked file ...
@@ -49,6 +51,10 @@ Delete the given field from the given file(s).
 
 Derive the needed value of the given field from other information in the given file.
 At the moment, this only works for deriving a "title" field from the filename.
+
+=item --disable I<module>
+
+Disable the given module for reading and writing. By default, all installed modules are enabled.
 
 =item --extract
 
@@ -329,6 +335,7 @@ sub process_args () {
 	       'wanted_fields=s%',
 	       'field_order=s@',
 	       'taggable_fields=s%',
+	       'disable=s@',
                'tagprefix!',
                'query|q',
                'quiet',
@@ -508,6 +515,7 @@ MAIN: {
         wanted_fields=>$opts->{wanted_fields},
         field_order=>$opts->{field_order},
         taggable_fields=>$opts->{taggable_fields},
+        disable=>$opts->{disable},
         primary_table=>$opts->{primary_table},
         derive=>$opts->{derive},
         tagfield=>$opts->{tagfield},

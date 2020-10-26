@@ -29,10 +29,10 @@ use Path::Tiny;
 
 use Module::Pluggable instantiate => 'new',
 search_path => ['File::Sticker::Reader'],
-sub_name => 'readers';
+sub_name => 'all_readers';
 use Module::Pluggable instantiate => 'new',
 search_path => ['File::Sticker::Writer'],
-sub_name => 'writers';
+sub_name => 'all_writers';
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -76,30 +76,55 @@ sub new {
         }
     }
     # -------------------------------------
+    # Modules
+    my %to_disable = ();
+    foreach my $mod (@{$self->{disable}})
+    {
+        $to_disable{$mod} = 1;
+    }
+
+    # -------------------------------------
     # Readers
-    my @readers = $self->readers();
+    my @readers = $self->all_readers();
+    $self->{_readers} = [];
     foreach my $rd (@readers)
     {
-        print STDERR "READER: ", $rd->name(), "\n" if $self->{verbose} > 1;
-	$rd->init(%new_args);
+        my $nm = $rd->name();
+        if ($to_disable{$nm})
+        {
+            print STDERR "DISABLE READER: ${nm}\n" if $self->{verbose} > 1;
+        }
+        else
+        {
+            print STDERR "READER: ${nm}\n" if $self->{verbose} > 1;
+            $rd->init(%new_args);
+            push @{$self->{_readers}}, $rd;
+        }
     }
-    $self->{_readers} = \@readers;
 
     # -------------------------------------
     # Writers
     my @writers = ();
     my @fallback_writers = ();
-    foreach my $wt ($self->writers())
+    foreach my $wt ($self->all_writers())
     {
-        print STDERR "WRITER: ", $wt->name(), "\n" if $self->{verbose} > 1;
-	$wt->init(%new_args);
-        if ($wt->is_fallback())
+        my $nm = $wt->name();
+        if ($to_disable{$nm})
         {
-            push @fallback_writers, $wt;
+            print STDERR "DISABLE WRITER: ${nm}\n" if $self->{verbose} > 1;
         }
         else
         {
-            push @writers, $wt;
+            print STDERR "WRITER: ${nm}\n" if $self->{verbose} > 1;
+            $wt->init(%new_args);
+            if ($wt->is_fallback())
+            {
+                push @fallback_writers, $wt;
+            }
+            else
+            {
+                push @writers, $wt;
+            }
         }
     }
     $self->{_writers} = \@writers;
