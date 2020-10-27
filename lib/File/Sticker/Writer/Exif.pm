@@ -41,7 +41,9 @@ sub whoami  { ( caller(1) )[3] }
 =head2 allowed_file
 
 If this writer can be used for the given file, then this returns true.
-File must be one of: an image or PDF. (ExifTool can't write to EPUB)
+File must be one of: PDF or an image which is not a GIF.
+(GIF files need to be treated separately)
+(ExifTool can't write to EPUB)
 
 =cut
 
@@ -52,7 +54,8 @@ sub allowed_file {
 
     $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if ($ft->{mime_type} =~ /(image|pdf)/)
+    if ($ft->{mime_type} =~ /(image|pdf)/
+            and $ft->{mime_type} !~ /gif/)
     {
         return 1;
     }
