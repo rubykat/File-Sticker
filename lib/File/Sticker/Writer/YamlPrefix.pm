@@ -161,10 +161,6 @@ sub replace_all_meta {
     
 } # replace_all_meta
 
-=head1 Helper Functions
-
-Private interface.
-
 =head2 replace_one_field
 
 Overwrite the given field. This does no checking.
@@ -187,9 +183,9 @@ sub replace_one_field {
     $self->_write_meta(filename=>$filename,meta=>$info);
 } # replace_one_field
 
-=head1 Private Helper Functions
+=head1 Helper Functions
 
-Even more private interface (only within this file)
+Private interface.
 
 =head2 _has_yaml
 
