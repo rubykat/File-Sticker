@@ -39,12 +39,21 @@ sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
+=head2 priority
+
+The priority of this reader.  Readers with higher priority get tried first.
+
+=cut
+
+sub priority {
+    my $class = shift;
+    return 2;
+} # priority
+
 =head2 allowed_file
 
 If this reader can be used for the given file, then this returns true.
-File must be one of: PDF or an image which is not a GIF.
-(GIF files need to be treated separately)
-(Since ExifTool can't write to EPUB, there's no point reading them either.)
+File must be a GIF image.
 
 =cut
 

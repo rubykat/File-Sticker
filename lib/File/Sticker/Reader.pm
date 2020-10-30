@@ -118,6 +118,28 @@ sub name {
     return pop @bits;
 } # name
 
+=head2 priority
+
+The priority of this reader.  Readers with higher priority
+get tried first.  This is useful where there may be more
+than one possible meta-data format for a file, such as
+EXIF versus XATTR.
+
+This works as either a class function or a method.
+
+This must be overridden by the specific writer class.
+
+$priority = $self->priority();
+
+$priority = File::Sticker::Reader::priority($class);
+
+=cut
+
+sub priority {
+    my $class = shift;
+    return 0;
+} # priority
+
 =head2 allow
 
 If this reader can be used for the given file, and the wanted_fields then this returns true.

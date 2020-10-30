@@ -38,6 +38,17 @@ sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
+=head2 priority
+
+The priority of this writer.  Writers with higher priority get tried first.
+
+=cut
+
+sub priority {
+    my $class = shift;
+    return 2;
+} # priority
+
 =head2 allowed_file
 
 If this writer can be used for the given file, then this returns true.

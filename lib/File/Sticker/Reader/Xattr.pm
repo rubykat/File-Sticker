@@ -37,6 +37,17 @@ sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
 
+=head2 priority
+
+The priority of this reader.  Readers with higher priority get tried first.
+
+=cut
+
+sub priority {
+    my $class = shift;
+    return 0;
+} # priority
+
 =head2 allowed_file
 
 If this reader can be used for the given file, then this returns true.
