@@ -384,6 +384,7 @@ sub print_meta {
 
     say STDERR "== $filename ==";
     my $meta = $sticker->read_meta(filename=>$filename,
+        derive=>$opts->{derive},
         read_all=>$opts->{read_all});
     print STDERR Dump($meta);
 } # print_meta
@@ -397,6 +398,7 @@ sub meta_from_file {
     my $from_file = $args{from_file};
 
     my $meta = $sticker->read_meta(filename=>$from_file,
+        derive=>$opts->{derive},
         read_all=>$opts->{read_all});
 
     $sticker->replace_all_meta(filename=>$filename,meta=>$meta);
@@ -498,6 +500,7 @@ sub do_stuff {
             elsif ($opts->{file_info})
             {
                 my $file_meta = $sticker->read_meta(filename=>$file,
+                    derive=>$opts->{derive},
                     read_all=>$opts->{read_all});
                 say "== $file ==";
                 print Dump($file_meta);

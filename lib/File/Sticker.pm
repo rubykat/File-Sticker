@@ -206,6 +206,20 @@ sub read_meta ($%) {
         print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
     }
 
+    # If read_all or derive, add in the derived values
+    if ($args{read_all} or $args{derive})
+    {
+        my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
+        foreach my $field (sort keys %{$derived})
+        {
+            # only add a derived field if it isn't there already
+            if (!exists $meta->{$field} and $derived->{$field})
+            {
+                $meta->{$field} = $derived->{$field};
+            }
+        }
+    }
+
     # If we only want the wanted_fields, remove anything that isn't wanted
     if (!$args{read_all}
             and exists $self->{wanted_fields}
@@ -217,17 +231,6 @@ sub read_meta ($%) {
             if (! exists $self->{wanted_fields}->{$fn})
             {
                 delete $meta->{$fn};
-            }
-        }
-    }
-    elsif ($args{read_all}) # read all, including derived values
-    {
-        my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
-        foreach my $field (sort keys %{$derived})
-        {
-            if (!exists $meta->{$field} and $derived->{$field})
-            {
-                $meta->{$field} = $derived->{$field};
             }
         }
     }
