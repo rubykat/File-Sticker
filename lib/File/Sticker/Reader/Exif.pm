@@ -90,7 +90,6 @@ sub known_fields {
         creator=>'TEXT',
         description=>'TEXT',
         location=>'TEXT',
-        url=>'TEXT',
         tags=>'MULTI',
         date=>'TEXT',
         copyright=>'TEXT',
@@ -165,19 +164,6 @@ sub read_meta {
         }
     }
     $meta{copyright} = $copyright if $copyright;
-
-    # The URL could be from the Source or the Identifier
-    # Check through them until you find a non-empty one which contains an actual URL
-    foreach my $field (qw(Source Identifier))
-    {
-        if (exists $info->{$field}
-                and $info->{$field}
-                and $info->{$field} =~ /^http/
-                and !exists $meta{url})
-        {
-            $meta{url} = $info->{$field};
-        }
-    }
 
     # There are multiple fields which could be used as a file date.
     # Check through them until you find a non-empty one.

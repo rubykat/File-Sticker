@@ -89,7 +89,6 @@ sub known_fields {
         creator=>'TEXT',
         description=>'TEXT',
         location=>'TEXT',
-        url=>'TEXT',
         tags=>'MULTI',
         %{$self->{wanted_fields}},
     };
@@ -145,11 +144,7 @@ sub replace_one_field {
     $et->ExtractInfo($filename);
 
     my $success;
-    if ($field eq 'url')
-    {
-        $success = $et->SetNewValue('Source', $value);
-    }
-    elsif ($field eq 'creator')
+    if ($field eq 'creator')
     {
         $success = $et->SetNewValue('Creator', $value);
     }
@@ -227,11 +222,7 @@ sub delete_field_from_file {
     $et->ExtractInfo($filename);
 
     my $success;
-    if ($field eq 'url')
-    {
-        $success = $et->SetNewValue('Source');
-    }
-    elsif ($field eq 'creator')
+    if ($field eq 'creator')
     {
         $success = $et->SetNewValue('Creator')
     }
