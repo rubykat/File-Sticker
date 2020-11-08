@@ -217,6 +217,12 @@ sub read_meta ($%) {
             {
                 $meta->{$field} = $derived->{$field};
             }
+            # Unless it is the file size, which must always be taken
+            # from the actual file size
+            if ($field eq 'filesize')
+            {
+                $meta->{$field} = $derived->{$field};
+            }
         }
     }
 
@@ -261,6 +267,12 @@ sub add_field_to_file {
     {
         return undef;
     }
+    # Never over-write the filesize, though.
+    if ($field eq 'filesize')
+    {
+        return undef;
+    }
+
     my $old_meta = $self->read_meta(filename=>$filename,read_all=>0);
     my $derived = $self->derive_values(filename=>$filename,meta=>$old_meta);
     if ($self->{derive} and defined $derived->{$field})
@@ -455,6 +467,12 @@ sub update_db {
         foreach my $field (@{$self->{field_order}})
         {
             if (!$meta->{$field} and $derived->{$field})
+            {
+                $meta->{$field} = $derived->{$field};
+            }
+            # Unless it is the file size, which must always be taken
+            # from the actual file size
+            if ($field eq 'filesize')
             {
                 $meta->{$field} = $derived->{$field};
             }
