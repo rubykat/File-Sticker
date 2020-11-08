@@ -266,7 +266,7 @@ Title
         }
         elsif (!$data)
         {
-            warn __PACKAGE__, " no legal YAML";
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
         }
         else # okay
         {
