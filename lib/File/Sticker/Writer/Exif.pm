@@ -109,7 +109,6 @@ sub readonly_fields {
     return {
         date=>'TEXT',
         copyright=>'TEXT',
-        filesize=>'TEXT',
         flash=>'TEXT',
         imagesize=>'TEXT',
         imageheight=>'NUMBER',

@@ -93,7 +93,6 @@ sub known_fields {
         tags=>'MULTI',
         date=>'TEXT',
         copyright=>'TEXT',
-        filesize=>'TEXT',
         flash=>'TEXT',
         imagesize=>'TEXT',
         imageheight=>'NUMBER',
@@ -220,7 +219,6 @@ sub read_meta {
 
     # There are SOOOOOO many fields in EXIF data, just remember a subset of them
     foreach my $field (qw(
-FileSize
 Flash
 ImageHeight
 ImageSize
