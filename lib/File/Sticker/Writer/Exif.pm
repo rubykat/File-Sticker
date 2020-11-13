@@ -316,7 +316,7 @@ sub _read_freeform_data {
         }
         elsif (!$ydata)
         {
-            warn __PACKAGE__, " no legal YAML";
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 1;
         }
     }
     say STDERR Dump($ydata) if $self->{verbose} > 2;
