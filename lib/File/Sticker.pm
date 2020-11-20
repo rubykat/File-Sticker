@@ -25,6 +25,7 @@ use POSIX qw(strftime);
 use String::CamelCase qw(wordsplit);
 use YAML::Any;
 use Path::Tiny;
+use Hash::Merge;
 
 use Module::Pluggable instantiate => 'new',
 search_path => ['File::Sticker::Reader'],
@@ -180,7 +181,9 @@ sub read_meta ($%) {
         return {};
     }
 
-    my $reader;
+    # Don't limit this to only one reader, due to data being
+    # held in multiple forms, we need a fallback.
+    my @possible_readers = ();
     # Look for the high-priority readers first
     foreach my $pri (reverse sort keys %{$self->{_read_pri}})
     {
@@ -188,21 +191,22 @@ sub read_meta ($%) {
         {
             if ($rd->allow($filename))
             {
-                $reader = $rd;
+                push @possible_readers, $rd;
                 say STDERR "Reader($pri) ", $rd->name() if $self->{verbose} > 1;
-                last;
             }
-        }
-        if (defined $reader)
-        {
-            last;
         }
     }
 
+    # Merge in ALL found data; LEFT_PRECEDENT because the
+    # earlier readers have higher priority.
+    my $merge = Hash::Merge->new('LEFT_PRECEDENT');
     my $meta = {};
-    if (defined $reader)
+    foreach my $reader (@possible_readers)
     {
-        $meta = $reader->read_meta($filename);
+        say STDERR "Reading ", $reader->name() if $self->{verbose} > 1;
+        my $info = $reader->read_meta($filename);
+        my $newmeta = $merge->merge($meta, $info);
+        $meta = $newmeta;
         print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
     }
 
