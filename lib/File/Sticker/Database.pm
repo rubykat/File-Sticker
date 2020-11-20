@@ -477,7 +477,7 @@ sub query_by_tags ($$$) {
         )
     );
 
-    printf "Q='%s'\n", $query_string if $self->{verbose} > 1;
+    say sprintf("Q='%s'", $query_string) if $self->{verbose} > 1;
     my @pfields = qw(fileid file);
     push @pfields, @{$self->{field_order}},
     push @pfields, 'faceted_tags' if $using_info_table;
@@ -509,6 +509,11 @@ sub query_by_tags ($$$) {
                        }
                        else
                        {
+                           # Fix embeddeds quotes for SQL quoting
+                           # Can't use the "quote" method because that
+                           # also puts quotes around the whole thing, which
+                           # messes things up.
+                           $term =~ s/\'/''/g;
                            push @newterms, $term; # term alone
                            push @newterms, $term . '|*'; # at start
                            push @newterms, '*|' . $term . '|*'; # in middle
@@ -518,7 +523,6 @@ sub query_by_tags ($$$) {
                    }
                    return ($term);
                }
-
         );
     my $query  = $parser->parse($query_string);
 
