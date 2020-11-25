@@ -119,6 +119,7 @@ sub read_meta {
     if ($@)
     {
         warn __PACKAGE__, " Load of data failed: $@";
+        say "======\n$yaml_str\n=====" if $self->{verbose} > 1;
         return \%meta;
     }
     if (!$info)
@@ -241,15 +242,17 @@ sub _yaml_and_more {
     my $yaml_finished = 0;
     while (<$fh>) {
         if (/^---$/) {
-            if (!$yaml_started)
+            # There could be "---" lines after the YAML is finished!
+            if (!$yaml_started and !$yaml_finished)
             {
                 $yaml_started = 1;
                 next;
             }
-            else # end of the yaml part
+            elsif (!$yaml_finished) # end of the YAML part
             {
                 $yaml_started = 0;
                 $yaml_finished = 1;
+                next;
             }
         }
         if ($yaml_started)
