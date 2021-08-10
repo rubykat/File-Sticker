@@ -153,6 +153,7 @@ sub new {
             taggable_fields=>$self->{taggable_fields},
             topdir=>$self->{topdir},
             tagfield=>$self->{tagfield},
+            space_sep=>$self->{space_sep},
             verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();
