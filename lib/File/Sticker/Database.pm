@@ -46,6 +46,7 @@ Create a new object, setting global values for the object.
         wanted_fields=>\%wanted_fields,
         field_order=>\@field_order,
         primary_table=>$primary_table,
+        space_sep=>$space_sep,
     );
 
 =cut
@@ -163,6 +164,7 @@ sub create_tables ($) {
     # The taggable_fields hash contains the field names, and the prefix
     # for the field, if one is desired.
     # ----------------------------------------------------------
+    my $space_sep = ($self->{space_sep} ? $self->{space_sep} : '-');
     if ($self->{taggable_fields})
     {
         $q = "CREATE VIEW IF NOT EXISTS ${primary_table}_info AS SELECT fileid, file, ";
@@ -183,7 +185,7 @@ sub create_tables ($) {
             }
         }
         $q .= join(' || ', @tagdefs);
-        $q .= ', " ", "-") ';
+        $q .= sprintf(', " ", "%s") ', $space_sep);
 
         $q .= " AS faceted_tags ";
         $q .= " FROM $primary_table;";
@@ -388,12 +390,13 @@ sub get_all_tags {
     # since they have to be read from the deep_* tables
     my %mt_fields = ();
     my @tags = ();
+    my $space_sep = ($self->{space_sep} ? $self->{space_sep} : '-');
     foreach my $t (@{$self->{multi_fields}})
     {
         $mt_fields{$t} = 1; # remember this has been processed
         say STDERR "MT=$t" if $self->{verbose} > 1;
         my $deep_table = $self->_deep_table_name($t);
-        my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM ${deep_table} ORDER BY $t;");
+        my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '${space_sep}') FROM ${deep_table} ORDER BY $t;");
         # Only count as a tag if it is in taggable_fields
         if (exists $self->{taggable_fields}->{$t})
         {
@@ -424,7 +427,7 @@ sub get_all_tags {
         say STDERR "TT=$t" if $self->{verbose} > 1;
         if (!$mt_fields{$t}) # not a multi-field
         {
-            my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '-') FROM ${primary_table} ORDER BY $t;");
+            my $these_tags = $self->_do_one_col_query("SELECT DISTINCT replace($t, ' ', '${space_sep}') FROM ${primary_table} ORDER BY $t;");
             if (exists $self->{taggable_fields}->{$t} and $self->{taggable_fields}->{$t}) # has a prefix
             {
                 my $pr = $self->{taggable_fields}->{$t};
