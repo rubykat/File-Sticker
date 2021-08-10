@@ -354,6 +354,7 @@ sub process_args () {
                'file_info|finfo',
                'has_data',
                'tags',
+               'space_sep=s',
                'settings=s',
                'derive!',
                'extract!',
@@ -550,6 +551,7 @@ MAIN: {
         derive=>$opts->{derive},
         tagfield=>$opts->{tagfield},
         tagprefix=>$opts->{tagprefix},
+        space_sep=>$opts->{space_sep},
         verbose=>$opts->{verbose},
         quiet=>$opts->{quiet},
     );
