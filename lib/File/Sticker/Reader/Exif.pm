@@ -131,9 +131,12 @@ sub read_meta {
     # There are multiple fields which could be used as a file "description".
     # Check through them until you find a non-empty one.
     my $description = '';
-    foreach my $field (qw(Description Caption-Abstract Comment ImageDescription))
+    foreach my $field (qw(Description Caption-Abstract Comment UserComment))
     {
-        if (exists $info->{$field} and $info->{$field} and !$description)
+        if (exists $info->{$field}
+                and $info->{$field}
+                and $info->{$field} !~ /^---/ # YAML - not a description!
+                and !$description)
         {
             $description = $info->{$field};
             $description =~ s/\n$//; # remove trailing newlines
@@ -237,13 +240,15 @@ Title
 
     # -------------------------------------------------
     # Freeform Fields
-    # These are stored as YAML data in the UserComment field.
+    # These are stored as YAML data in the ImageDescription field.
+    # They used to be stored in the UserComment field, so
+    # that needs to be checked too.
     # -------------------------------------------------
-    if (exists $info->{UserComment} and $info->{UserComment})
+    if (exists $info->{ImageDescription} and $info->{ImageDescription})
     {
-        say STDERR "UserComment=", $info->{UserComment} if $self->{verbose} > 2;
+        say STDERR "ImageDescription=", $info->{ImageDescription} if $self->{verbose} > 2;
         my $data;
-        eval {$data = Load($info->{UserComment});};
+        eval {$data = Load($info->{ImageDescription});};
         if ($@)
         {
             warn __PACKAGE__, " Load of YAML data failed: $@";
@@ -257,6 +262,30 @@ Title
             foreach my $field (sort keys %{$data})
             {
                 $meta{$field} = $data->{$field};
+            }
+        }
+    }
+    elsif (exists $info->{UserComment} and $info->{UserComment})
+    {
+        say STDERR "UserComment=", $info->{UserComment} if $self->{verbose} > 2;
+        if ($info->{UserComment} =~ /^---/) # YAML prefix
+        {
+            my $data;
+            eval {$data = Load($info->{UserComment});};
+            if ($@)
+            {
+                warn __PACKAGE__, " Load of YAML data failed: $@";
+            }
+            elsif (!$data)
+            {
+                warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+            }
+            else # okay
+            {
+                foreach my $field (sort keys %{$data})
+                {
+                    $meta{$field} = $data->{$field};
+                }
             }
         }
     }
