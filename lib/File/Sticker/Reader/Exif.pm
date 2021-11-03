@@ -244,9 +244,11 @@ Title
     # They used to be stored in the UserComment field, so
     # that needs to be checked too.
     # -------------------------------------------------
-    if (exists $info->{ImageDescription} and $info->{ImageDescription})
+    if (exists $info->{ImageDescription}
+            and $info->{ImageDescription}
+            and $info->{ImageDescription} =~ /^---/)
     {
-        say STDERR "ImageDescription=", $info->{ImageDescription} if $self->{verbose} > 2;
+        say STDERR sprintf("ImageDescription='%s'", $info->{ImageDescription}) if $self->{verbose} > 2;
         my $data;
         eval {$data = Load($info->{ImageDescription});};
         if ($@)
@@ -265,27 +267,26 @@ Title
             }
         }
     }
-    elsif (exists $info->{UserComment} and $info->{UserComment})
+    elsif (exists $info->{UserComment}
+            and $info->{UserComment}
+            and $info->{UserComment} =~ /^---/)
     {
-        say STDERR "UserComment=", $info->{UserComment} if $self->{verbose} > 2;
-        if ($info->{UserComment} =~ /^---/) # YAML prefix
+        say STDERR sprintf("UserComment='%s'", $info->{UserComment}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{UserComment});};
+        if ($@)
         {
-            my $data;
-            eval {$data = Load($info->{UserComment});};
-            if ($@)
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
             {
-                warn __PACKAGE__, " Load of YAML data failed: $@";
-            }
-            elsif (!$data)
-            {
-                warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
-            }
-            else # okay
-            {
-                foreach my $field (sort keys %{$data})
-                {
-                    $meta{$field} = $data->{$field};
-                }
+                $meta{$field} = $data->{$field};
             }
         }
     }
