@@ -578,6 +578,7 @@ MAIN: {
         tagfield=>$opts->{tagfield},
         tagprefix=>$opts->{tagprefix},
         space_sep=>$opts->{space_sep},
+        readonly=>$opts->{readonly},
         verbose=>$opts->{verbose},
         quiet=>$opts->{quiet},
     );

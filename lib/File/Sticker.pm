@@ -157,7 +157,11 @@ sub new {
             verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();
-        $self->{db}->create_tables();
+        # Do not create tables if the database is readonly
+        if (!$self->{readonly})
+        {
+            $self->{db}->create_tables();
+        }
     }
 
     return ($self);
