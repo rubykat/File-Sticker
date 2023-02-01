@@ -154,14 +154,11 @@ sub new {
             topdir=>$self->{topdir},
             tagfield=>$self->{tagfield},
             space_sep=>$self->{space_sep},
+            readonly=>$self->{readonly},
             verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();
-        # Do not create tables if the database is readonly
-        if (!$self->{readonly})
-        {
-            $self->{db}->create_tables();
-        }
+        $self->{db}->create_tables();
     }
 
     return ($self);
