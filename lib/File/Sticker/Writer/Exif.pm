@@ -342,7 +342,7 @@ sub _read_freeform_data {
         eval {$ydata = Load($ystring);};
         if ($@)
         {
-            warn __PACKAGE__, " Load of YAML data failed: $@";
+            warn __PACKAGE__, " Load of YAML data failed: $@ // '$ystring'";
         }
         elsif (!$ydata)
         {
@@ -433,7 +433,7 @@ sub _convert_freeform_data {
         eval {$ydata = Load($ystring);};
         if ($@)
         {
-            warn __PACKAGE__, " Load of YAML data failed: $@";
+            warn __PACKAGE__, " Load of YAML data failed: $@ || '$ystring'";
         }
         elsif (!$ydata)
         {
