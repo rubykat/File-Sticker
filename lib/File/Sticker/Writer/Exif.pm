@@ -337,7 +337,7 @@ sub _read_freeform_data {
     my $ystring = $et->GetValue('Description');
     $ystring = $et->GetNewValue('Description') if !$ystring;
     say STDERR "ystring=$ystring" if $self->{verbose} > 2;
-    if ($ystring)
+    if ($ystring and $ystring =~ /^---/) # YAML data needs prefix
     {
         eval {$ydata = Load($ystring);};
         if ($@)
