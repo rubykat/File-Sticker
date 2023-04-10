@@ -161,20 +161,41 @@ sub replace_one_field {
     }
     elsif ($field eq 'description')
     {
-        # We need to make sure that the UserComment contains
-        # the description and NOT the freeform data
-        # because GIMP expects the UserComment to contain
-        # the image comment (and DOES NOT LOOK in the Comment field)
-        if ($self->_convert_freeform_data(exif=>$et))
-        {
-            $success = $et->SetNewValue('UserComment', $value);
-        }
+        # Okay, here's the messy relationship between the description,
+        # the freeform data, and GIMP.
+        #
+        # I originally wrote the freeform data in the UserComment field, and
+        # the description into the Description and Comment fields, then I found
+        # that GIMP uses the UserComment field as the description field at a
+        # higher priority than the Comment field.
+        #
+        # So then I wrote the freeform data in the ImageDescription field,
+        # then I found that GIMP ALSO uses THAT field as the description field
+        # at a higher priority than the Comment field.
+        #
+        # And that GIMP overwrites ALL THREE fields (Comment, UserComment, 
+        # ImageDescription) with what it considers the description
+        # when saving a file.
+        #
+        # So now I use the XMP:Description (Description) field for the
+        # freeform data, because GIMP neither reads nor overwrites that.
+        # WHEW!
+
+        # Before the decription is written, the freeform data
+        # needs to be converted to its new home.
+        $self->_convert_freeform_data(exif=>$et);
+
+        # GIMP reads and overwrites the Comment, UserComment
+        # and ImageDescription fields, so we need to do that too.
+        # Escpecially since GIMP does not look at the Comment field
+        # if one of the other two is not empty.
+        $success = $et->SetNewValue('UserComment', $value);
+        $success = $et->SetNewValue('ImageDescription', $value);
         
         if ($ft->{mime_type} =~ /image\/jpeg/)
         {
             $success = $et->SetNewValue('Comment', $value);
         }
-        $success = $et->SetNewValue('Description', $value);
     }
     elsif ($field eq 'tags')
     {
@@ -237,11 +258,14 @@ sub delete_field_from_file {
     }
     elsif ($field eq 'description')
     {
+        # GIMP reads and overwrites the Comment, UserComment
+        # and ImageDescription fields, so we need to do that too.
         if ($ft->{mime_type} =~ /image\/jpeg/)
         {
             $success = $et->SetNewValue('Comment');
         }
-        $success = $et->SetNewValue('Description');
+        $success = $et->SetNewValue('ImageDescription');
+        $success = $et->SetNewValue('UserComment');
     }
     elsif ($field eq 'tags')
     {
@@ -294,7 +318,7 @@ sub _get_the_real_file {
 
 =head2 _read_freeform_data
 
-Read the freeform data as YAML data from the ImageDescription field.
+Read the freeform data as YAML data from the XMP:Description field.
  
     my $ydata = $self->_read_freeform_data(exif=>$exif);
 
@@ -310,8 +334,8 @@ sub _read_freeform_data {
 
     my $ydata;
     my $et = $args{exif};
-    my $ystring = $et->GetValue('ImageDescription');
-    $ystring = $et->GetNewValue('ImageDescription') if !$ystring;
+    my $ystring = $et->GetValue('Description');
+    $ystring = $et->GetNewValue('Description') if !$ystring;
     say STDERR "ystring=$ystring" if $self->{verbose} > 2;
     if ($ystring)
     {
@@ -331,7 +355,7 @@ sub _read_freeform_data {
 
 =head2 _write_freeform_data
 
-Write the freeform data as YAML data into the ImageDescription field
+Write the freeform data as YAML data into the Description field
 This overwrites whatever is there, it does not check.
     
     $self->_write_freeform_data(newdata=>\%newdata,exif=>$exif);
@@ -359,17 +383,15 @@ sub _write_freeform_data {
     }
     my $ystring = Dump($newdata);
     say STDERR "ystring=$ystring" if $self->{verbose} > 2;
-    my $success = $et->SetNewValue('ImageDescription', $ystring);
+    my $success = $et->SetNewValue('Description', $ystring);
     return $success;
 } # _write_freeform_data
 
 =head2 _convert_freeform_data
 
-Convert the freeform data so that it is placed into
-the ImageDescription field rather than the UserComment field,
-and put the "description" info into the UserComment field,
-so that GIMP will not use the freeform data as the image comment!
-    
+Convert the freeform data so that it is placed into the Description field
+rather than the UserComment or ImageDescription field.
+ 
     $self->_convert_freeform_data(exif=>$exif);
 
 =cut
@@ -381,10 +403,10 @@ sub _convert_freeform_data {
 
     my $et = $args{exif};
     # Check if it needs conversion at all.
-    # If the ImageDescription field is not empty
+    # If the XMP:Description field is not empty
     # and contains YAML data, then nothing needs to be done.
-    my $ystring = $et->GetValue('ImageDescription');
-    $ystring = $et->GetNewValue('ImageDescription') if !$ystring;
+    my $ystring = $et->GetValue('Description');
+    $ystring = $et->GetNewValue('Description') if !$ystring;
     if ($ystring and $ystring =~ /^---/) # Assume YAML data
     {
         # no conversion needed
@@ -393,14 +415,21 @@ sub _convert_freeform_data {
 
     # ------------------------------------
     # Conversion needed
-    # Read from UserComment, write into ImageDescription
+    # Read from ImageDescription, write into XMP:Description
+    # The YAML data might be in UserComment instead if old.
     # ------------------------------------
-    $ystring = $et->GetValue('UserComment') if !$ystring;
-    $ystring = $et->GetNewValue('UserComment') if !$ystring;
+    $ystring = $et->GetValue('ImageDescription') if !$ystring;
+    $ystring = $et->GetNewValue('ImageDescription') if !$ystring;
     my $ydata;
     my $success = 0;
+    if (!$ystring or $ystring =~ /^---/) # Try UserComment
+    {
+        $ystring = $et->GetValue('UserComment') if !$ystring;
+        $ystring = $et->GetNewValue('UserComment') if !$ystring;
+    }
     if ($ystring and $ystring =~ /^---/) # Probably YAML data
     {
+        # Check if the YAML data is valid
         eval {$ydata = Load($ystring);};
         if ($@)
         {
@@ -412,19 +441,25 @@ sub _convert_freeform_data {
         }
         else # data is okay
         {
-            $success = $et->SetNewValue('ImageDescription', $ystring);
+            $success = $et->SetNewValue('Description', $ystring);
             if ($success)
             {
-                # Also clear out UserComment from no longer valid data
-                $et->SetNewValue('UserComment');
-
-                # Put the description into the UserComment if there is one
+                # Put the description, if there is one,
+                # into the UserComment, ImageDescription
                 my $desc = $et->GetValue('Comment');
                 $desc = $et->GetNewValue('Comment') if !$desc;
-                $desc = $et->GetValue('Description') if !$desc;
-                $desc = $et->GetNewValue('Description') if !$desc;
                 $desc = $et->GetValue('Caption-Abstract') if !$desc;
-                $et->SetNewValue('UserComment', $desc) if $desc;
+                if ($desc)
+                {
+                    $et->SetNewValue('UserComment', $desc);
+                    $et->SetNewValue('ImageDescription', $desc);
+                }
+                else
+                {
+                    # Otherwise clear out no longer valid data
+                    $et->SetNewValue('ImageDescription');
+                    $et->SetNewValue('UserComment');
+                }
             }
         }
     }
@@ -433,7 +468,7 @@ sub _convert_freeform_data {
         # Put some empty data in there.
         my %newdata = ();
         my $nystring = Dump(\%newdata);
-        $success = $et->SetNewValue('ImageDescription', $nystring);
+        $success = $et->SetNewValue('Description', $nystring);
     }
 
     return $success;

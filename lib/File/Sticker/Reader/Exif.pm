@@ -131,7 +131,7 @@ sub read_meta {
     # There are multiple fields which could be used as a file "description".
     # Check through them until you find a non-empty one.
     my $description = '';
-    foreach my $field (qw(Description Caption-Abstract Comment UserComment))
+    foreach my $field (qw(Caption-Abstract Comment UserComment ImageDescription Description))
     {
         if (exists $info->{$field}
                 and $info->{$field}
@@ -240,11 +240,34 @@ Title
 
     # -------------------------------------------------
     # Freeform Fields
-    # These are stored as YAML data in the ImageDescription field.
-    # They used to be stored in the UserComment field, so
-    # that needs to be checked too.
+    # These are stored as YAML data in the XMP:Description field.
+    # They used to be stored in the ImageDescription field then
+    # the UserComment field, so they need to be checked too.
     # -------------------------------------------------
-    if (exists $info->{ImageDescription}
+    if (exists $info->{Description}
+            and $info->{Description}
+            and $info->{Description} =~ /^---/)
+    {
+        say STDERR sprintf("Description='%s'", $info->{Description}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{Description});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+    elsif (exists $info->{ImageDescription}
             and $info->{ImageDescription}
             and $info->{ImageDescription} =~ /^---/)
     {
