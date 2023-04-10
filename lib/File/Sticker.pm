@@ -154,6 +154,7 @@ sub new {
             topdir=>$self->{topdir},
             tagfield=>$self->{tagfield},
             space_sep=>$self->{space_sep},
+            readonly=>$self->{readonly},
             verbose=>$self->{verbose},
         );
         $self->{db}->do_connect();
