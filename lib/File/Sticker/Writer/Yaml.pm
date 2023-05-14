@@ -73,7 +73,7 @@ sub allowed_file {
     {
         return 0;
     }
-    if (! -f $file)
+    if (! -r $file)
     {
         say STDERR "$file does not exist, but that's okay" if $self->{verbose} > 2;
         return 1;

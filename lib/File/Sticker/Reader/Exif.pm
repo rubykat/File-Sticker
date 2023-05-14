@@ -335,7 +335,7 @@ sub _get_the_real_file {
     {
         my $cover_file = ($self->{cover_file} ? $self->{cover_file} : 'cover.jpg');
         $cover_file = File::Spec->catfile($filename, $cover_file);
-        if (-f $cover_file)
+        if (-r $cover_file)
         {
             $filename = $cover_file;
         }

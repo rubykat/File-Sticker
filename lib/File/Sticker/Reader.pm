@@ -95,7 +95,7 @@ sub init {
     {
 	$self->{$key} = $parameters{$key};
     }
-    $self->{file_magic} = File::LibMagic->new();
+    $self->{file_magic} = File::LibMagic->new(follow_symlinks=>1);
 } # init
 
 =head2 name

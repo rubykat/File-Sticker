@@ -66,7 +66,7 @@ sub allowed_file {
     my $ft = $self->{file_magic}->info_from_filename($file);
     # This needs to be a plain text file
     # We don't want to include .yml files because they are dealt with separately
-    if (-f $file
+    if (-r $file
             and $ft->{mime_type} =~ m{^text/plain}
             and $file !~ /\.yml$/)
     {

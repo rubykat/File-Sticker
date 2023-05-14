@@ -396,7 +396,7 @@ sub missing_files {
     foreach my $file (@files)
     {
         say STDERR "checking $file" if $self->{verbose} > 2;
-        if (!-f $file and !-d $file)
+        if (!-r $file and !-d $file)
         {
             push @missing_files, $file;
         }
@@ -530,7 +530,7 @@ sub derive_values {
     my $meta = $args{meta};
 
     my $fp = path($filename);
-    if (-f $filename)
+    if (-r $filename)
     {
         $meta->{file} = $fp->realpath->stringify;
     }
@@ -597,7 +597,7 @@ sub derive_values {
             $meta->{"section${id}"} = $bits[$i];
         }
     }
-    if (-f $filename)
+    if (-r $filename)
     {
         my $stat = $fp->stat;
         $meta->{filesize} = $stat->size;

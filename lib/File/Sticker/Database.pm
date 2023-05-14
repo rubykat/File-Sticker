@@ -284,7 +284,7 @@ sub get_file_id ($$) {
     my $dbh = $self->do_connect();
 
     my $fullname = $filename;
-    if (-f $filename)
+    if (-r $filename)
     {
         $fullname = path($filename)->realpath->stringify;
     }
@@ -673,7 +673,7 @@ sub add_meta_to_db {
     # This is faster than REPLACE because it doesn't need
     # to rebuild indexes.
     my $fullname = $filename;
-    if (-f $filename)
+    if (-r $filename)
     {
         $fullname = path($filename)->realpath->stringify;
     }

@@ -61,7 +61,7 @@ sub allowed_file {
     my $file = shift;
     say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
 
-    if (-f $file)
+    if (-r $file)
     {
         say STDERR 'Reader ' . $self->name() . ' allows any filetype ' . $file if $self->{verbose} > 1;
         return 1;
