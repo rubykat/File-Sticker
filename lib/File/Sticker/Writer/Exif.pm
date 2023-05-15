@@ -221,7 +221,26 @@ sub replace_one_field {
 
     if ($success)
     {
-        $et->WriteInfo($filename);
+        # ExifTool has a wicked habit of replacing soft-linked files
+        # with the contents of the file rather than honouring the link.
+        # While using the exiftool script offers -overwrite_original_in_place
+        # to deal with this, the Perl module does not appear to have
+        # such an option available.
+
+        # So the way to get around this is to check if $filename is
+        # a soft link, and if it is, find the real file, and
+        # write to that. (Note that this will not work if the
+        # soft link points to *another* soft link, but I'm
+        # not prepared to go down that rabbit-hole.)
+        if (-l $filename)
+        {
+            my $realfile = readlink $filename;
+            $et->WriteInfo($filename,$realfile);
+        }
+        else
+        {
+            $et->WriteInfo($filename);
+        }
     }
     return $success;
 } # replace_one_field
@@ -285,7 +304,26 @@ sub delete_field_from_file {
 
     if ($success)
     {
-        $et->WriteInfo($filename);
+        # ExifTool has a wicked habit of replacing soft-linked files
+        # with the contents of the file rather than honouring the link.
+        # While using the exiftool script offers -overwrite_original_in_place
+        # to deal with this, the Perl module does not appear to have
+        # such an option available.
+
+        # So the way to get around this is to check if $filename is
+        # a soft link, and if it is, find the real file, and
+        # write to that. (Note that this will not work if the
+        # soft link points to *another* soft link, but I'm
+        # not prepared to go down that rabbit-hole.)
+        if (-l $filename)
+        {
+            my $realfile = readlink $filename;
+            $et->WriteInfo($filename,$realfile);
+        }
+        else
+        {
+            $et->WriteInfo($filename);
+        }
     }
     return $success;
 } # delete_field_from_file
