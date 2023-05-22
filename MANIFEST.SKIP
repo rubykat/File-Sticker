@@ -29,3 +29,6 @@ dist.ini
 \.swp$
 \.bak$
 
+# Image test files
+^*.jpg
+^*.png
