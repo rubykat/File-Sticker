@@ -500,6 +500,12 @@ sub query_by_tags ($$$) {
             like => 'GLOB',
             wildcard => '*',
         },
+        # I don't want these to be case-insensitive
+        # because tags could start with these words
+        and_regex        => qr/\&|AND/,
+        or_regex         => qr/\||OR/,
+        not_regex        => qr/NOT/,
+
         default_field => $default_field,
         default_op => '~',
         fields => \@pfields,
