@@ -21,6 +21,7 @@ nomenclature.
 
 use common::sense;
 use File::LibMagic;
+use List::MoreUtils qw(uniq);
 
 =head1 DEBUGGING
 
@@ -428,12 +429,6 @@ sub add_multival_to_file {
     }
 
     # add new value(s) to existing taglike-values
-    my %th = ();
-
-    foreach my $t (@vals)
-    {
-        $th{$t} = 1;
-    }
     my @old_values = ();
     if (ref $old_vals eq 'ARRAY')
     {
@@ -443,12 +438,9 @@ sub add_multival_to_file {
     {
         @old_values = split(/,/, $old_vals);
     }
-    foreach my $t (@old_values)
-    {
-        $th{$t} = 1;
-    }
-    my @newvals = keys %th;
-    @newvals = sort @newvals;
+    my @newvals = @old_values;
+    push @newvals, @vals;
+    @newvals = uniq @newvals;
     my $newvals = join(',', @newvals);
 
     $self->replace_one_field(filename=>$filename,
@@ -490,8 +482,7 @@ sub delete_multival_from_file ($%) {
     }
 
     # remove value from existing values
-    my %th = ();
-
+    # preserving the existing order
     my @old_values = ();
     if (ref $old_vals eq 'ARRAY')
     {
@@ -501,15 +492,14 @@ sub delete_multival_from_file ($%) {
     {
         @old_values = split(/,/, $old_vals);
     }
+    my @newvals = ();
     foreach my $t (@old_values)
     {
         if (! exists $to_delete{$t})
         {
-            $th{$t} = 1;
+            push @newvals, $t;
         }
     }
-    my @newvals = keys %th;
-    @newvals = sort @newvals;
     my $newvals = join(',', @newvals);
 
     $self->replace_one_field(filename=>$filename,

@@ -26,6 +26,7 @@ use File::LibMagic;
 use Image::ExifTool qw(:Public);
 use YAML::Any;
 use File::Spec;
+use List::MoreUtils qw(uniq);
 
 use parent qw(File::Sticker::Reader);
 
@@ -183,14 +184,14 @@ sub read_meta {
 
     # Use a consistent naming for tag fields.
     # Combine the tag-like fields together.
-    # Put them in a hash because there might be duplicates
-    my %tags = ();
+    # Preserve the order and check for dupicates later with uniq
+    my @tags = ();
     foreach my $field (qw(Keywords Subject))
     {
         if (exists $info->{$field} and $info->{$field})
         {
             my $val = $info->{$field};
-            my @tags;
+            my @these_tags;
             if ($is_gutenberg_book)
             {
                 # gutenberg tags are multi-word, separated by comma-space or ' -- '
@@ -198,24 +199,25 @@ sub read_meta {
                 $val =~ s/\(//g;
                 $val =~ s/\)//g;
                 $val =~ s/\s--\s/,/g;
-                @tags = split(/,\s?/, $val);
+                @these_tags = split(/,\s?/, $val);
             }
             else
             {
-                @tags = split(/,\s*/, $val);
+                @these_tags = split(/,\s*/, $val);
             }
-            foreach my $t (@tags)
+            foreach my $t (@these_tags)
             {
                 $t =~ s/ - / /g; # remove isolated dashes
                 $t =~ s/[^\w\s,-]//g; # remove non-word characters
-                $tags{$t}++;
+                push @tags, $t;
             }
         }
     }
-    # Make the tags an array, not a string
-    if (keys %tags)
+    # Are there any tags?
+    if (@tags)
     {
-        $meta{tags} = [sort keys %tags];
+        # remove duplicates
+        $meta{tags} = [uniq @tags];
     }
     else # remove empty tag-field
     {
