@@ -607,6 +607,11 @@ sub derive_values {
         {
             $meta->{linkdate} = $meta->{filedate};
         }
+        if (!$meta->{date_added})
+        {
+            $meta->{date_added} =
+            ($meta->{date} ? $meta->{date} : $meta->{filedate});
+        }
     }
 
     return $meta;
