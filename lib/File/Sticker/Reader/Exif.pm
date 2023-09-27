@@ -318,6 +318,22 @@ Title
         }
     }
 
+    # For date_added, we want to set it if it isn't already there,
+    # and we want the oldest date
+    if (exists $self->{wanted_fields}->{date_added}
+            and !$meta{date_added})
+    {
+        foreach my $field (qw(CreateDate DateTimeOriginal ModifyDate FileModifyDate))
+        {
+            if (exists $info->{$field} and $info->{$field}
+                    and !$meta{date_added})
+            {
+                $meta{date_added} = $info->{$field};
+            }
+        }
+    }
+
+
     return \%meta;
 } # read_meta
 
