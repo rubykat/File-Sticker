@@ -241,16 +241,16 @@ sub delete_field_from_file {
     elsif ($field eq 'author')
     {
         # use the 'composer' field
-        $mp3->select_id3v2_frame_by_descr('TCOM', '');
+        $mp3->select_id3v2_frame_by_descr('TCOM', undef);
     }
     elsif ($field eq 'url')
     {
         # official audio file webpage
-        $mp3->select_id3v2_frame_by_descr('WOAF', '');
+        $mp3->select_id3v2_frame_by_descr('WOAF', undef);
     }
     else
     {
-        $mp3->select_id3v2_frame_by_descr("TXXX[${field}]", '');
+        $mp3->select_id3v2_frame_by_descr("TXXX[${field}]", undef);
     }
     $mp3->update_tags();
 } # delete_field_from_file
