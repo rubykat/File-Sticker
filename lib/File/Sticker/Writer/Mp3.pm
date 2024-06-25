@@ -100,9 +100,11 @@ sub known_fields {
 
     return {
         title=>'TEXT',
-        description=>'TEXT',
         creator=>'TEXT',
         author=>'TEXT',
+        composer=>'TEXT',
+        performer=>'TEXT',
+        description=>'TEXT',
         genre=>'TEXT',
         song=>'TEXT',
         url=>'TEXT',
@@ -180,9 +182,18 @@ sub replace_one_field {
     {
         $mp3->track_set($value);
     }
+    elsif ($field eq 'performer')
+    {
+        $mp3->select_id3v2_frame_by_descr('TPE1', $value);
+    }
+    elsif ($field eq 'composer')
+    {
+        $mp3->select_id3v2_frame_by_descr('TCOM', $value);
+    }
     elsif ($field eq 'author')
     {
-        # use the 'composer' field
+        # Use the 'composer' field
+        # This is used for podfic, whereas composer is used for music.
         $mp3->select_id3v2_frame_by_descr('TCOM', $value);
     }
     elsif ($field eq 'url')
@@ -237,6 +248,14 @@ sub delete_field_from_file {
     elsif ($field eq 'creator')
     {
         $mp3->artist_set('');
+    }
+    elsif ($field eq 'performer')
+    {
+        $mp3->select_id3v2_frame_by_descr('TPE1', undef);
+    }
+    elsif ($field eq 'composer')
+    {
+        $mp3->select_id3v2_frame_by_descr('TCOM', undef);
     }
     elsif ($field eq 'author')
     {

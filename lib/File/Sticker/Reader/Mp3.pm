@@ -85,6 +85,8 @@ sub known_fields {
         title=>'TEXT',
         creator=>'TEXT',
         author=>'TEXT',
+        composer=>'TEXT',
+        performer=>'TEXT',
         description=>'TEXT',
         song=>'TEXT',
         genre=>'TEXT',
@@ -147,9 +149,18 @@ sub read_meta {
         {
             $meta{'track'} = $mp3->track();
         }
+        elsif ($field eq 'composer')
+        {
+            $meta{'composer'} = $mp3->composer();
+        }
+        elsif ($field eq 'performer')
+        {
+            $meta{'performer'} = $mp3->performer();
+        }
         elsif ($field eq 'author')
         {
             # author (as distinct from artist) use the 'composer' field
+            # This is used for podfic, whereas composer is used for music.
             $meta{'author'} = $mp3->composer();
         }
         elsif ($field eq 'url')
