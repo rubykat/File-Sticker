@@ -1,14 +1,14 @@
-package File::Sticker::Writer::Mp3;
+package File::Sticker::Scribe::Mp3;
 
 =head1 NAME
 
-File::Sticker::Writer::Mp3 - write and standardize meta-data from MP3 file
+File::Sticker::Scribe::Mp3 - read, write and standardize meta-data from MP3 file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer::Mp3;
+    use File::Sticker::Scribe::Mp3;
 
-    my $obj = File::Sticker::Writer::Mp3->new(%args);
+    my $obj = File::Sticker::Scribe::Mp3->new(%args);
 
     my %meta = $obj->write_meta(%args);
 
@@ -23,7 +23,7 @@ use common::sense;
 use File::LibMagic;
 use MP3::Tag;
 
-use parent qw(File::Sticker::Writer);
+use parent qw(File::Sticker::Scribe);
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -39,7 +39,7 @@ sub whoami  { ( caller(1) )[3] }
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority get tried first.
+The priority of this scribe.  Scribes with higher priority get tried first.
 
 =cut
 
@@ -50,7 +50,7 @@ sub priority {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
+If this scribe can be used for the given file, then this returns true.
 File must be an MP3 file.
 
 =cut
@@ -63,6 +63,7 @@ sub allowed_file {
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'audio/mpeg')
     {
+        say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;
@@ -70,10 +71,10 @@ sub allowed_file {
 
 =head2 allowed_fields
 
-If this writer can be used for the known and wanted fields, then this returns true.
-For this writer, this always returns true.
+If this scribe can be used for the known and wanted fields, then this returns true.
+For this scribe, this always returns true.
 
-    if ($writer->allowed_fields())
+    if ($scribe->allowed_fields())
     {
 	....
     }
@@ -88,10 +89,10 @@ sub allowed_fields {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
-This writer has no limitations.
+Returns the fields which this scribe knows about.
+This scribe has no limitations.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -117,10 +118,10 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -130,6 +131,96 @@ sub readonly_fields {
     return {};
 } # readonly_fields
 
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+    my $meta = $obj->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+
+    my $mp3 = MP3::Tag->new($filename);
+    my %meta = ();
+
+    my $known_fields = $self->known_fields();
+    foreach my $field (sort keys %{$known_fields})
+    {
+        if ($field eq 'title')
+        {
+            $meta{'title'} = $mp3->album();
+        }
+        elsif ($field eq 'song')
+        {
+            $meta{'song'} = $mp3->title();
+        }
+        elsif ($field eq 'description')
+        {
+            $meta{'description'} = $mp3->comment();
+            if (!$meta{description}) # try the COMM field
+            {
+                $meta{$field} = $mp3->select_id3v2_frame_by_descr('COMM');
+            }
+        }
+        elsif ($field eq 'creator')
+        {
+            $meta{'creator'} = $mp3->artist();
+        }
+        elsif ($field eq 'genre')
+        {
+            $meta{'genre'} = $mp3->genre();
+        }
+        elsif ($field eq 'year')
+        {
+            $meta{'year'} = $mp3->year();
+        }
+        elsif ($field eq 'track')
+        {
+            $meta{'track'} = $mp3->track();
+        }
+        elsif ($field eq 'composer')
+        {
+            $meta{'composer'} = $mp3->composer();
+        }
+        elsif ($field eq 'performer')
+        {
+            $meta{'performer'} = $mp3->performer();
+        }
+        elsif ($field eq 'author')
+        {
+            # author (as distinct from artist) use the 'composer' field
+            # This is used for podfic, whereas composer is used for music.
+            $meta{'author'} = $mp3->composer();
+        }
+        elsif ($field eq 'url')
+        {
+            # get url
+            # official audio file webpage
+            my $value = $mp3->select_id3v2_frame_by_descr('WOAF');
+            $meta{url} = $value if $value;
+            # official audio source webpage
+            $value = $mp3->select_id3v2_frame_by_descr('WOAS');
+            $meta{url} = $value if !$meta{url} and $value;
+        }
+        else # freeform text fields
+        {
+            if ($mp3->have_id3v2_frame('TXXX', [$field]))
+            {
+                my $tagframe = $mp3->select_id3v2_frame('TXXX', [$field], undef);
+                $meta{$field} = $tagframe;
+            }
+        }
+        # Delete any fields that are undefined
+        delete $meta{$field} if !defined $meta{$field};
+    }
+
+    return \%meta;
+} # read_meta
+
 =head1 Helper Functions
 
 =cut
@@ -138,7 +229,7 @@ sub readonly_fields {
 
 Overwrite the given field. This does no checking.
 
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+    $scribe->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
@@ -218,7 +309,7 @@ sub replace_one_field {
 Remove the given field. This does no checking.
 This doesn't completely remove it, merely sets it to the empty string.
 
-    $writer->delete_field_from_file(filename=>$filename,field=>$field);
+    $scribe->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
@@ -280,5 +371,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer
+1; # End of File::Sticker::Scribe
 __END__

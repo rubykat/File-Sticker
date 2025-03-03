@@ -1,20 +1,22 @@
-package File::Sticker::Writer::Yaml;
+package File::Sticker::Scribe::Yaml;
 
 =head1 NAME
 
-File::Sticker::Writer::Yaml - write and standardize meta-data from YAML file
+File::Sticker::Scribe::Yaml - read, write and standardize meta-data from YAML file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer::Yaml;
+    use File::Sticker::Scribe::Yaml;
 
-    my $obj = File::Sticker::Writer::Yaml->new(%args);
+    my $obj = File::Sticker::Scribe::Yaml->new(%args);
 
-    my %meta = $obj->write_meta(%args);
+    my %meta = $obj->read_meta($filename);
+
+    $obj->write_meta(%args);
 
 =head1 DESCRIPTION
 
-This will write meta-data from YAML files, and standardize it to a common
+This will read and write meta-data from YAML files, and standardize it to a common
 nomenclature, such as "tags" for things called tags, or Keywords or Subject etc.
 
 =cut
@@ -23,7 +25,7 @@ use common::sense;
 use File::LibMagic;
 use YAML::Any qw(Dump LoadFile DumpFile);
 
-use parent qw(File::Sticker::Writer);
+use parent qw(File::Sticker::Scribe);
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -39,7 +41,7 @@ sub whoami  { ( caller(1) )[3] }
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority get tried first.
+The priority of this scribe.  Scribes with higher priority get tried first.
 
 =cut
 
@@ -50,7 +52,7 @@ sub priority {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
+If this scribe can be used for the given file, then this returns true.
 File must be plain text and end with '.yml'
 Howwever, if the file DOES NOT EXIST, it CAN be WRITTEN TO, so return true then as well.
 This is the only case where the file doesn't need to exist beforehand.
@@ -97,10 +99,10 @@ sub allowed_file {
 
 =head2 allowed_fields
 
-If this writer can be used for the known and wanted fields, then this returns true.
+If this scribe can be used for the known and wanted fields, then this returns true.
 For YAML, this always returns true.
 
-    if ($writer->allowed_fields())
+    if ($scribe->allowed_fields())
     {
 	....
     }
@@ -115,10 +117,10 @@ sub allowed_fields {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
-This writer has no limitations.
+Returns the fields which this scribe knows about.
+This scribe has no limitations.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -134,10 +136,10 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -147,12 +149,77 @@ sub readonly_fields {
     return {filesize=>'NUMBER'};
 } # readonly_fields
 
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+    my $meta = $obj->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+
+    my ($info) = LoadFile($filename);
+    my %meta = ();
+    foreach my $key (sort keys %{$info})
+    {
+        my $val = $info->{$key};
+        if ($val)
+        {
+            if ($key eq 'tags')
+            {
+                $meta{tags} = $val;
+                # If there are no commas, change spaces to commas.  This is
+                # because if we are using commas to separate, we allow
+                # multi-word tags with spaces in them, so we don't want to turn
+                # those spaces into commas!
+                if ($meta{tags} !~ /,/)
+                {
+                    $meta{tags} =~ s/ /,/g; # spaces to commas
+                }
+            }
+            elsif ($key eq 'dublincore.source')
+            {
+                $meta{'url'} = $val;
+            }
+            elsif ($key eq 'dublincore.title')
+            {
+                $meta{'title'} = $val;
+            }
+            elsif ($key eq 'dublincore.creator')
+            {
+                $meta{'creator'} = $val;
+            }
+            elsif ($key eq 'dublincore.description')
+            {
+                $meta{'description'} = $val;
+            }
+            elsif ($key eq 'private')
+            {
+                # deal with this after tags
+            }
+            else
+            {
+                $meta{$key} = $val;
+            }
+        }
+    }
+    if ($info->{private})
+    {
+        $meta{tags} .= ",private";
+    }
+    return \%meta;
+} # read_meta
+
 =head2 delete_field_from_file
 
 Completely remove the given field.
 This does no checking for multi-valued fields, it just deletes the whole thing.
 
-    $writer->delete_field_from_file(filename=>$filename,field=>$field);
+    $scribe->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
@@ -175,7 +242,7 @@ Overwrite the existing meta-data with that given.
 
 (This supercedes the parent method because we can do it more efficiently this way)
 
-    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
+    $scribe->replace_all_meta(filename=>$filename,meta=>\%meta);
 
 =cut
 
@@ -198,7 +265,7 @@ Private interface.
 
 Overwrite the given field. This does no checking.
 
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+    $scribe->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
@@ -222,5 +289,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer
+1; # End of File::Sticker::Scribe
 __END__

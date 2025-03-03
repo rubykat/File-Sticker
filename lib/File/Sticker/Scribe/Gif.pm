@@ -1,20 +1,22 @@
-package File::Sticker::Writer::Gif;
+package File::Sticker::Scribe::Gif;
 
 =head1 NAME
 
-File::Sticker::Writer::Gif - write and standardize meta-data from GIF file
+File::Sticker::Scribe::Gif - read, write and standardize meta-data from GIF file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer::Gif;
+    use File::Sticker::Scribe::Gif;
 
-    my $obj = File::Sticker::Writer::Gif->new(%args);
+    my $obj = File::Sticker::Scribe::Gif->new(%args);
 
-    my %meta = $obj->write_meta(%args);
+    my %meta = $obj->read_meta($filename);
+
+    $obj->write_meta(%args);
 
 =head1 DESCRIPTION
 
-This will write meta-data from GIF files, and standardize it to a common
+This will read and write meta-data from GIF files, and standardize it to a common
 nomenclature, such as "tags" for things called tags, or Keywords or Subject etc.
 
 =cut
@@ -25,8 +27,9 @@ use Carp;
 use File::LibMagic;
 use Image::ExifTool qw(:Public);
 use YAML::Any;
+use File::Spec;
 
-use parent qw(File::Sticker::Writer);
+use parent qw(File::Sticker::Scribe);
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -42,7 +45,7 @@ sub whoami  { ( caller(1) )[3] }
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority get tried first.
+The priority of this scribe.  Scribes with higher priority get tried first.
 
 =cut
 
@@ -53,7 +56,7 @@ sub priority {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
+If this scribe can be used for the given file, then this returns true.
 File must be a GIF image.
 
 =cut
@@ -74,10 +77,10 @@ sub allowed_file {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
-This writer has no limitations.
+Returns the fields which this scribe knows about.
+This scribe has no limitations, because all the fields are freeform fields.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -93,10 +96,10 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -112,11 +115,84 @@ sub readonly_fields {
         megapixels=>'NUMBER'};
 } # readonly_fields
 
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+    my $meta = $obj->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+
+    my $filename = $self->_get_the_real_file($filename);
+    my $info = ImageInfo($filename);
+    my %meta = ();
+
+    # There are multiple fields which could be used as a file date.
+    # Check through them until you find a non-empty one.
+    my $date = '';
+    foreach my $field (qw(CreateDate DateTimeOriginal Date PublishedDate PublicationDate))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$date)
+        {
+            $date = $info->{$field};
+        }
+    }
+    $meta{date} = $date if $date;
+
+    # There are SOOOOOO many fields in image data, just remember a subset of them
+    foreach my $field (qw(
+FileSize
+ImageHeight
+ImageSize
+ImageWidth
+Megapixels
+))
+    {
+        if (exists $info->{$field} and $info->{$field})
+        {
+            $meta{lc($field)} = $info->{$field};
+        }
+    }
+
+    # -------------------------------------------------
+    # Freeform Fields
+    # These are stored as YAML data in the Comment field.
+    # -------------------------------------------------
+    if (exists $info->{Comment} and $info->{Comment})
+    {
+        say STDERR "Comment=", $info->{Comment} if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{Comment});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML";
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+
+    return \%meta;
+} # read_meta
+
 =head2 delete_field_from_file
 
 Completely remove the given field. This does no checking.
 
-    $writer->delete_field_from_file(filename=>$filename,field=>$field);
+    $scribe->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
@@ -143,7 +219,7 @@ Overwrite the existing meta-data with that given.
 
 (This supercedes the parent method because we can do it more efficiently this way)
 
-    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
+    $scribe->replace_all_meta(filename=>$filename,meta=>\%meta);
 
 =cut
 
@@ -160,7 +236,7 @@ sub replace_all_meta {
 
 Overwrite the given field. This does no checking.
 
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+    $scribe->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
@@ -261,7 +337,7 @@ sub _write_meta {
 If the file is a soft link, look for the file it is pointing to
 (because ExifTool behaves badly with soft links).
 
-    my $real_file = $writer->_get_the_real_file(filename=>$filename);
+    my $real_file = $scribe->_get_the_real_file(filename=>$filename);
 
 =cut
 
@@ -302,5 +378,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer::Gif
+1; # End of File::Sticker::Scribe::Gif
 __END__

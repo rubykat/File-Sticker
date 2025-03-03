@@ -18,8 +18,7 @@ And update a database with that information.
 =cut
 
 use common::sense;
-use File::Sticker::Reader;
-use File::Sticker::Writer;
+use File::Sticker::Scribe;
 use File::Sticker::Database;
 use POSIX qw(strftime);
 use String::CamelCase qw(wordsplit);
@@ -28,11 +27,8 @@ use Path::Tiny;
 use Hash::Merge;
 
 use Module::Pluggable instantiate => 'new',
-search_path => ['File::Sticker::Reader'],
-sub_name => 'all_readers';
-use Module::Pluggable instantiate => 'new',
-search_path => ['File::Sticker::Writer'],
-sub_name => 'all_writers';
+search_path => ['File::Sticker::Scribe'],
+sub_name => 'all_scribes';
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -84,51 +80,27 @@ sub new {
     }
 
     # -------------------------------------
-    # Readers
-    # Find out what readers are available, and group them by priority
-    my @readers = $self->all_readers();
-    $self->{_read_pri} = {};
-    foreach my $rd (@readers)
+    # Scribes
+    # Find out what scribes are available, and group them by priority
+    my @scribes = $self->all_scribes();
+    $self->{_scribe_pri} = {};
+    foreach my $rd (@scribes)
     {
         my $nm = $rd->name();
 	my $priority = $rd->priority();
         if ($to_disable{$nm})
         {
-            print STDERR "DISABLE READER: ${nm}\n" if $self->{verbose} > 1;
+            print STDERR "DISABLE SCRIBE: ${nm}\n" if $self->{verbose} > 1;
         }
         else
         {
-            print STDERR "READER: ${nm}\n" if $self->{verbose} > 1;
+            print STDERR "SCRIBE: ${nm}\n" if $self->{verbose} > 1;
             $rd->init(%new_args);
-            if (!exists $self->{_read_pri}->{$priority})
+            if (!exists $self->{_scribe_pri}->{$priority})
             {
-                $self->{_read_pri}->{$priority} = [];
+                $self->{_scribe_pri}->{$priority} = [];
             }
-            push @{$self->{_read_pri}->{$priority}}, $rd;
-        }
-    }
-
-    # -------------------------------------
-    # Writers
-    # Find out what writers are available, and group them by priority
-    $self->{_write_pri} = {};
-    foreach my $wt ($self->all_writers())
-    {
-        my $nm = $wt->name();
-	my $priority = $wt->priority();
-        if ($to_disable{$nm})
-        {
-            print STDERR "DISABLE WRITER: ${nm}\n" if $self->{verbose} > 1;
-        }
-        else
-        {
-            print STDERR "WRITER: ${nm}\n" if $self->{verbose} > 1;
-            $wt->init(%new_args);
-            if (!exists $self->{_write_pri}->{$priority})
-            {
-                $self->{_write_pri}->{$priority} = [];
-            }
-            push @{$self->{_write_pri}->{$priority}}, $wt;
+            push @{$self->{_scribe_pri}->{$priority}}, $rd;
         }
     }
 
@@ -183,30 +155,30 @@ sub read_meta ($%) {
         return {};
     }
 
-    # Don't limit this to only one reader, due to data being
+    # Don't limit this to only one scribe, due to data being
     # held in multiple forms, we need a fallback.
-    my @possible_readers = ();
-    # Look for the high-priority readers first
-    foreach my $pri (reverse sort keys %{$self->{_read_pri}})
+    my @possible_scribes = ();
+    # Look for the high-priority scribes first
+    foreach my $pri (reverse sort keys %{$self->{_scribe_pri}})
     {
-        foreach my $rd (@{$self->{_read_pri}->{$pri}})
+        foreach my $rd (@{$self->{_scribe_pri}->{$pri}})
         {
             if ($rd->allow($filename))
             {
-                push @possible_readers, $rd;
-                say STDERR "Reader($pri) ", $rd->name() if $self->{verbose} > 1;
+                push @possible_scribes, $rd;
+                say STDERR "Scribe($pri) ", $rd->name() if $self->{verbose} > 1;
             }
         }
     }
 
     # Merge in ALL found data; LEFT_PRECEDENT because the
-    # earlier readers have higher priority.
+    # earlier scribes have higher priority.
     my $merge = Hash::Merge->new('LEFT_PRECEDENT');
     my $meta = {};
-    foreach my $reader (@possible_readers)
+    foreach my $scribe (@possible_scribes)
     {
-        say STDERR "Reading ", $reader->name() if $self->{verbose} > 1;
-        my $info = $reader->read_meta($filename);
+        say STDERR "Reading ", $scribe->name() if $self->{verbose} > 1;
+        my $info = $scribe->read_meta($filename);
         my $newmeta = $merge->merge($meta, $info);
         $meta = $newmeta;
         print STDERR "META: ", Dump($meta), "\n" if $self->{verbose} > 1;
@@ -273,7 +245,7 @@ sub add_field_to_file {
     {
         return undef;
     }
-    # Never over-write the filesize, though.
+    # Never over-write the filesize, though. That's read-only!
     if ($field eq 'filesize')
     {
         return undef;
@@ -286,10 +258,10 @@ sub add_field_to_file {
         $value = $derived->{$field};
     }
 
-    my $writer = $self->_get_writer($filename);
-    if (defined $writer)
+    my $scribe = $self->_get_scribe($filename);
+    if (defined $scribe)
     {
-        $writer->add_field_to_file(
+        $scribe->add_field_to_file(
             filename=>$filename,
             field=>$field,
             value=>$value,
@@ -314,10 +286,10 @@ sub delete_field_from_file {
     my $filename = $args{filename};
     my $field = $args{field};
 
-    my $writer = $self->_get_writer($filename);
-    if (defined $writer)
+    my $scribe = $self->_get_scribe($filename);
+    if (defined $scribe)
     {
-        $writer->delete_field_from_file(
+        $scribe->delete_field_from_file(
             filename=>$filename,
             field=>$field);
     }
@@ -339,10 +311,10 @@ sub replace_all_meta {
     my $filename = $args{filename};
     my $meta = $args{meta};
 
-    my $writer = $self->_get_writer($filename);
-    if (defined $writer)
+    my $scribe = $self->_get_scribe($filename);
+    if (defined $scribe)
     {
-        $writer->replace_all_meta(
+        $scribe->replace_all_meta(
             filename=>$filename,
             meta=>$meta);
     }
@@ -617,36 +589,36 @@ sub derive_values {
     return $meta;
 } # derive_values
 
-=head2 _get_writer
+=head2 _get_scribe
 
-Pick the appropriate writer for this file
+Pick the appropriate scribe for this file
 
-    my $writer = $sticker->_get_writer($filename);
+    my $scribe = $sticker->_get_scribe($filename);
 
 =cut
-sub _get_writer {
+sub _get_scribe {
     my $self = shift;
     my $filename = shift;
 
-    my $writer;
-    foreach my $pri (reverse sort keys %{$self->{_write_pri}})
+    my $scribe;
+    foreach my $pri (reverse sort keys %{$self->{_scribe_pri}})
     {
-        foreach my $wt (@{$self->{_write_pri}->{$pri}})
+        foreach my $wt (@{$self->{_scribe_pri}->{$pri}})
         {
             if ($wt->allow($filename))
             {
-                $writer = $wt;
-                say STDERR "Writer($pri) ", $writer->name() if $self->{verbose} > 1;
+                $scribe = $wt;
+                say STDERR "Scribe($pri) ", $scribe->name() if $self->{verbose} > 1;
                 last;
             }
         }
-        if (defined $writer)
+        if (defined $scribe)
         {
             last;
         }
     }
-    return $writer;
-} # _get_writer
+    return $scribe;
+} # _get_scribe
 
 =head1 BUGS
 

@@ -1,20 +1,22 @@
-package File::Sticker::Writer::Xattr;
+package File::Sticker::Scribe::Xattr;
 
 =head1 NAME
 
-File::Sticker::Writer::Xattr - write and standardize meta-data from ExtAttr file
+File::Sticker::Scribe::Xattr - read, write and standardize meta-data from ExtAttr file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer::Xattr;
+    use File::Sticker::Scribe::Xattr;
 
-    my $obj = File::Sticker::Writer::Xattr->new(%args);
+    my $obj = File::Sticker::Scribe::Xattr->new(%args);
 
-    my %meta = $obj->write_meta(%args);
+    my %meta = $obj->read_meta($filename);
+
+    $obj->write_meta(%args);
 
 =head1 DESCRIPTION
 
-This will write meta-data from extended user attributes of files, and standardize it to a common
+This will read and write meta-data from extended user attributes of files, and standardize it to a common
 nomenclature, such as "tags" for things called tags, or Keywords or Subject etc.
 
 =cut
@@ -24,7 +26,7 @@ use File::LibMagic;
 use File::ExtAttr ':all';
 use File::Basename;
 
-use parent qw(File::Sticker::Writer);
+use parent qw(File::Sticker::Scribe);
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -40,8 +42,8 @@ sub whoami  { ( caller(1) )[3] }
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority get tried first.
-Xattr is a low-priority writer.
+The priority of this scribe.  Scribes with higher priority get tried first.
+Xattr is a low-priority scribe.
 
 =cut
 
@@ -52,7 +54,7 @@ sub priority {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
+If this scribe can be used for the given file, then this returns true.
 This can be used with any file, if the filesystem supports extended attributes.
 I don't know how to test for that, so I'll just assume "yes".
 
@@ -72,10 +74,10 @@ sub allowed_file {
 
 =head2 allowed_fields
 
-If this writer can be used for the known and wanted fields, then this returns true.
+If this scribe can be used for the known and wanted fields, then this returns true.
 For Xattr, this always returns true.
 
-    if ($writer->allowed_fields())
+    if ($scribe->allowed_fields())
     {
 	....
     }
@@ -90,10 +92,10 @@ sub allowed_fields {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
-This writer has no limitations.
+Returns the fields which this scribe knows about.
+This scribe has no limitations.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -109,10 +111,10 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -122,12 +124,57 @@ sub readonly_fields {
     return {filesize=>'NUMBER'};
 } # readonly_fields
 
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+    my $meta = $obj->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+
+    my %meta = ();
+    foreach my $key (listfattr($filename))
+    {
+        if ($key eq 'dublincore.source' or $key eq 'xdg.referrer.url')
+        {
+            $meta{url} = getfattr($filename, $key);
+        }
+        elsif ($key eq 'dublincore.creator')
+        {
+            $meta{creator} = getfattr($filename, $key);
+        }
+        elsif ($key eq 'dublincore.title')
+        {
+            $meta{title} = getfattr($filename, $key);
+        }
+        elsif ($key eq 'dublincore.alternative')
+        {
+            $meta{alt_title} = getfattr($filename, $key);
+        }
+        elsif ($key eq 'dublincore.description')
+        {
+            $meta{description} = getfattr($filename, $key);
+        }
+        else
+        {
+            $meta{$key} = getfattr($filename, $key);
+        }
+    }
+
+    return \%meta;
+} # read_meta
+
 =head2 delete_field_from_file
 
 Completely remove the given field.
 For multi-value fields, it removes ALL the values.
 
-    $writer->delete_field_from_file(filename=>$filename,field=>$field);
+    $scribe->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
@@ -174,7 +221,7 @@ Overwrite the existing meta-data with that given.
 
 (This supercedes the parent method because we can do it more efficiently this way)
 
-    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
+    $scribe->replace_all_meta(filename=>$filename,meta=>\%meta);
 
 =cut
 
@@ -258,7 +305,7 @@ Private interface.
 Overwrite the given field.
 This does no checking for multi-value fields.
 
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+    $scribe->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
@@ -311,5 +358,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer
+1; # End of File::Sticker::Scribe
 __END__

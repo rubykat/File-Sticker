@@ -1,16 +1,18 @@
-package File::Sticker::Writer::Exif;
+package File::Sticker::Scribe::Exif;
 
 =head1 NAME
 
-File::Sticker::Writer::Exif - write and standardize meta-data from EXIF file
+File::Sticker::Scribe::Exif - read, write and standardize meta-data from EXIF file
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer::Exif;
+    use File::Sticker::Scribe::Exif;
 
-    my $obj = File::Sticker::Writer::Exif->new(%args);
+    my $obj = File::Sticker::Scribe::Exif->new(%args);
 
-    my %meta = $obj->write_meta(%args);
+    my %meta = $obj->read_meta($filename);
+
+    $obj->write_meta(%args);
 
 =head1 DESCRIPTION
 
@@ -25,8 +27,10 @@ use common::sense;
 use File::LibMagic;
 use Image::ExifTool qw(:Public);
 use YAML::Any;
+use File::Spec;
+use List::MoreUtils qw(uniq);
 
-use parent qw(File::Sticker::Writer);
+use parent qw(File::Sticker::Scribe);
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -42,7 +46,7 @@ sub whoami  { ( caller(1) )[3] }
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority get tried first.
+The priority of this writer.  Scribes with higher priority get tried first.
 
 =cut
 
@@ -53,7 +57,7 @@ sub priority {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
+If this scribe can be used for the given file, then this returns true.
 File must be one of: PDF or an image which is not a GIF.
 (GIF files need to be treated separately)
 (ExifTool can't write to EPUB)
@@ -77,9 +81,9 @@ sub allowed_file {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
+Returns the fields which this scribe knows about.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -98,10 +102,10 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -117,6 +121,223 @@ sub readonly_fields {
         imagewidth=>'NUMBER',
         megapixels=>'NUMBER'};
 } # readonly_fields
+
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+    my $meta = $obj->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+
+    $filename = $self->_get_the_real_file(filename=>$filename);
+    my $exif_options = {DateFormat => "%Y-%m-%d %H:%M:%S"};
+    my $info = ImageInfo($filename,$exif_options);
+    my %meta = ();
+
+    # Check if this is a Gutenberg book; they have quirks.
+    my $is_gutenberg_book = 0;
+    if (exists $info->{Identifier}
+            and $info->{'Identifier'} =~ m!http://www.gutenberg.org/ebooks/\d+!)
+    {
+        $is_gutenberg_book = 1;
+        # If this is a Gutenberg book, the Identifier holds the correct URL
+        $meta{'url'} = $info->{'Identifier'};
+    }
+    # There are multiple fields which could be used as a file "description".
+    # Check through them until you find a non-empty one.
+    my $description = '';
+    foreach my $field (qw(Caption-Abstract Comment UserComment ImageDescription Description))
+    {
+        if (exists $info->{$field}
+                and $info->{$field}
+                and $info->{$field} !~ /^---/ # YAML - not a description!
+                and !$description)
+        {
+            $description = $info->{$field};
+            $description =~ s/\n$//; # remove trailing newlines
+        }
+    }
+    $meta{description} = $description if $description;
+    # There are multiple fields which could be used as a file content creator.
+    # Check through them until you find a non-empty one.
+    my $creator = '';
+    foreach my $field (qw(Author Artist Creator))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$creator)
+        {
+            $creator = $info->{$field};
+        }
+    }
+    $meta{creator} = $creator if $creator;
+
+    # There are multiple fields which could be used as a copyright notice.
+    # Check through them until you find a non-empty one.
+    my $copyright = '';
+    foreach my $field (qw(License Rights))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$copyright)
+        {
+            $copyright = $info->{$field};
+        }
+    }
+    $meta{copyright} = $copyright if $copyright;
+
+    # There are multiple fields which could be used as a file date.
+    # Check through them until you find a non-empty one.
+    my $date = '';
+    foreach my $field (qw(CreateDate DateTimeOriginal Date PublishedDate PublicationDate))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$date)
+        {
+            $date = $info->{$field};
+        }
+    }
+    $meta{date} = $date if $date;
+
+    # Use a consistent naming for tag fields.
+    # Combine the tag-like fields together.
+    # Preserve the order and check for dupicates later with uniq
+    my @tags = ();
+    foreach my $field (qw(Keywords Subject))
+    {
+        if (exists $info->{$field} and $info->{$field})
+        {
+            my $val = $info->{$field};
+            my @these_tags;
+            if ($is_gutenberg_book)
+            {
+                # gutenberg tags are multi-word, separated by comma-space or ' -- '
+                # and can have parens in them
+                $val =~ s/\(//g;
+                $val =~ s/\)//g;
+                $val =~ s/\s--\s/,/g;
+                @these_tags = split(/,\s?/, $val);
+            }
+            else
+            {
+                @these_tags = split(/,\s*/, $val);
+            }
+            foreach my $t (@these_tags)
+            {
+                $t =~ s/ - / /g; # remove isolated dashes
+                $t =~ s/[^\w\s,-]//g; # remove non-word characters
+                push @tags, $t;
+            }
+        }
+    }
+    # Are there any tags?
+    if (@tags)
+    {
+        # remove duplicates
+        $meta{tags} = [uniq @tags];
+    }
+    else # remove empty tag-field
+    {
+        delete $meta{tags};
+    }
+
+    # There are SOOOOOO many fields in EXIF data, just remember a subset of them
+    foreach my $field (qw(
+Flash
+ImageHeight
+ImageSize
+ImageWidth
+Megapixels
+PageCount
+Location
+Title
+))
+    {
+        if (exists $info->{$field} and $info->{$field})
+        {
+            $meta{lc($field)} = $info->{$field};
+        }
+    }
+
+    # -------------------------------------------------
+    # Freeform Fields
+    # These are stored as YAML data in the XMP:Description field.
+    # They used to be stored in the ImageDescription field then
+    # the UserComment field, so they need to be checked too.
+    # -------------------------------------------------
+    if (exists $info->{Description}
+            and $info->{Description}
+            and $info->{Description} =~ /^---/)
+    {
+        say STDERR sprintf("Description='%s'", $info->{Description}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{Description});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+    elsif (exists $info->{ImageDescription}
+            and $info->{ImageDescription}
+            and $info->{ImageDescription} =~ /^---/)
+    {
+        say STDERR sprintf("ImageDescription='%s'", $info->{ImageDescription}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{ImageDescription});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+    elsif (exists $info->{UserComment}
+            and $info->{UserComment}
+            and $info->{UserComment} =~ /^---/)
+    {
+        say STDERR sprintf("UserComment='%s'", $info->{UserComment}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{UserComment});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+
+    return \%meta;
+} # read_meta
 
 =head1 Helper Functions
 
@@ -298,7 +519,7 @@ If the file is a directory, look for a cover file.
 If the file is a soft link, look for the file it is pointing to
 (because ExifTool behaves badly with soft links).
 
-    my $real_file = $writer->_get_the_real_file(filename=>$filename);
+    my $real_file = $scribe->_get_the_real_file(filename=>$filename);
 
 =cut
 
@@ -510,5 +731,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer
+1; # End of File::Sticker::Scribe
 __END__

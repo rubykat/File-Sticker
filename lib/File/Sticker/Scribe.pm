@@ -1,21 +1,52 @@
-package File::Sticker::Writer;
+package File::Sticker::Scribe;
 
 =head1 NAME
 
-File::Sticker::Writer - write and standardize meta-data from files
+File::Sticker::Scribe - read, write and standardize meta-data from files
 
 =head1 SYNOPSIS
 
-    use File::Sticker::Writer;
+    use File::Sticker::Scribe;
 
-    my $writer = File::Sticker::Writer->new(%args);
+    my $scribe = File::Sticker::Scribe->new(%args);
 
-    $writer->write_meta(%args);
+    my $meta = $scribe->read_meta($filename);
+
+    $scribe->write_meta(%args);
 
 =head1 DESCRIPTION
 
-This will write meta-data from files in various formats, and standardize it to a common
-nomenclature.
+This will read and write meta-data from files in various formats,
+and standardize it to a common nomenclature,
+such as "tags" for things called tags, or Keywords or Subject etc.
+
+The standard nomenclature is:
+
+=over
+
+=item url
+
+The source URL of this file (ref 'dublincore.source')
+
+=item creator
+
+The author or artist who created this. (ref 'dublincore.creator')
+
+=item title
+
+The title of the item. (ref 'dublincore.title')
+
+=item description
+
+The description of the item. (ref 'dublincore.description')
+
+=item tags
+
+The item's tags. (ref 'Keywords').
+
+=back
+
+Other fields will be called whatever the user has pre-configured.
 
 =cut
 
@@ -38,7 +69,7 @@ sub whoami  { ( caller(1) )[3] }
 
 Create a new object, setting global values for the object.
 
-    my $obj = File::Sticker::Writer->new();
+    my $obj = File::Sticker::Scribe->new();
 
 =cut
 
@@ -55,7 +86,7 @@ sub new {
 Initialize the object.
 Set which fields you are interested in ('wanted_fields').
 
-    $writer->init(wanted_fields=>{title=>'TEXT',count=>'NUMBER',tags=>'MULTI'});
+    $scribe->init(wanted_fields=>{title=>'TEXT',count=>'NUMBER',tags=>'MULTI'});
 
 =cut
 
@@ -72,12 +103,12 @@ sub init {
 
 =head2 name
 
-The name of the writer; this is basically the last component
+The name of the scribe; this is basically the last component
 of the module name.  This works as either a class function or a method.
 
 $name = $self->name();
 
-$name = File::Sticker::Writer::name($class);
+$name = File::Sticker::Scribe::name($class);
 
 =cut
 
@@ -92,18 +123,18 @@ sub name {
 
 =head2 priority
 
-The priority of this writer.  Writers with higher priority
+The priority of this scribe.  Scribes with higher priority
 get tried first.  This is useful where there may be more
 than one possible meta-data format for a file, such as
 EXIF versus XATTR.
 
 This works as either a class function or a method.
 
-This must be overridden by the specific writer class.
+This must be overridden by the specific scribe class.
 
-$priority = $self->priority();
+    $priority = $self->priority();
 
-$priority = File::Sticker::Writer::priority($class);
+    $priority = File::Sticker::Scribe::priority($class);
 
 =cut
 
@@ -114,10 +145,11 @@ sub priority {
 
 =head2 allow
 
-If this writer can be used for the given file, and the wanted_fields then this returns true.
+If this scribe can be used for the given file and the wanted_fields,
+then this returns true.
 Returns false if there are no 'wanted_fields'!
 
-    if ($writer->allow($file))
+    if ($scribe->allow($file))
     {
 	....
     }
@@ -132,7 +164,7 @@ sub allow {
     my $okay = $self->allowed_file($file);
     if ($okay) # okay so far
     {
-        say STDERR 'Writer ' . $self->name() . ' allows filetype of ' . $file if $self->{verbose} > 1;
+        say STDERR 'Scribe ' . $self->name() . ' allows filetype of ' . $file if $self->{verbose} > 1;
         $okay = $self->allowed_fields();
     }
     return $okay;
@@ -140,10 +172,10 @@ sub allow {
 
 =head2 allowed_file
 
-If this writer can be used for the given file, then this returns true.
-This must be overridden by the specific writer class.
+If this scribe can be used for the given file, then this returns true.
+This must be overridden by the specific scribe class.
 
-    if ($writer->allowed_file($file))
+    if ($scribe->allowed_file($file))
     {
 	....
     }
@@ -196,7 +228,7 @@ sub allowed_fields {
     }
     else
     {
-        say STDERR 'Writer ' . $self->name() . ' was not given wanted_fields' if $self->{verbose} > 1;
+        say STDERR 'Scribe ' . $self->name() . ' was not given wanted_fields' if $self->{verbose} > 1;
         $okay = 0;
     }
     return $okay;
@@ -204,11 +236,11 @@ sub allowed_fields {
 
 =head2 known_fields
 
-Returns the fields which this writer knows about.
+Returns the fields which this scribe knows about.
 
-This must be overridden by the specific writer class.
+This must be overridden by the specific scribe class.
 
-    my $known_fields = $writer->known_fields();
+    my $known_fields = $scribe->known_fields();
 
 =cut
 
@@ -220,12 +252,12 @@ sub known_fields {
 
 =head2 readonly_fields
 
-Returns the fields which this writer knows about, which can't be overwritten,
+Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-This must be overridden by the specific writer class.
+This must be overridden by the specific scribe class.
 
-    my $readonly_fields = $writer->readonly_fields();
+    my $readonly_fields = $scribe->readonly_fields();
 
 =cut
 
@@ -235,12 +267,28 @@ sub readonly_fields {
     return undef;
 } # readonly_fields
 
+=head2 read_meta
+
+Read the meta-data from the given file.
+
+This must be overridden by the specific scribe class.
+
+    my $meta = $scribe->read_meta($filename);
+
+=cut
+
+sub read_meta {
+    my $self = shift;
+    my $filename = shift;
+
+} # read_meta
+
 =head2 add_field_to_file
 
 Adds a field to a file, taking account of whether it is a multi-value field or not.
 This requires the old meta-data for the file to be passed in.
 
-    $writer->add_field_to_file(filename=>$filename,
+    $scribe->add_field_to_file(filename=>$filename,
         field=>$field,
         value=>$value,
         old_meta=>\%meta);
@@ -285,9 +333,9 @@ sub add_field_to_file {
 Completely remove the given field.
 For multi-value fields, it removes ALL the values.
 
-This must be overridden by the specific writer class.
+This must be overridden by the specific scribe class.
 
-    $writer->delete_field_from_file(filename=>$filename,field=>$field);
+    $scribe->delete_field_from_file(filename=>$filename,field=>$field);
 
 =cut
 
@@ -303,7 +351,7 @@ sub delete_field_from_file {
 
 Overwrite the existing meta-data with that given.
 
-    $writer->replace_all_meta(filename=>$filename,meta=>\%meta);
+    $scribe->replace_all_meta(filename=>$filename,meta=>\%meta);
 
 =cut
 
@@ -349,7 +397,7 @@ This expects a comma-separated list of individual values, prefixed with an opera
 This also needs to know the existing values of the multi-valued field.
 The old values are either a reference to an array, or a string with comma-separated values.
 
-    $writer->update_multival_field(filename=>$filename,
+    $scribe->update_multival_field(filename=>$filename,
         field=>$field_name,
         value=>$value,
         old_vals=>$old_vals);
@@ -406,7 +454,7 @@ Add a multi-valued field to the file.
 Needs to know the existing values of the multi-valued field.
 The old values are either a reference to an array, or a string with comma-separated values.
 
-    $writer->add_multival_to_file(filename=>$filename,
+    $scribe->add_multival_to_file(filename=>$filename,
         field=>$field_name,
         value=>$value,
         old_vals=>$old_vals);
@@ -454,7 +502,7 @@ Remove one value of a multi-valued field.
 Needs to know the existing values of the multi-valued field.
 The old values are either a reference to an array, or a string with comma-separated values.
 
-    $writer->delete_multival_from_file(filename=>$filename,
+    $scribe->delete_multival_from_file(filename=>$filename,
         value=>$value,
         field=>$field_name,
         old_vals=>$old_vals);
@@ -511,9 +559,9 @@ sub delete_multival_from_file ($%) {
 
 Overwrite the given field. This does no checking.
 
-This must be overridden by the specific writer class.
+This must be overridden by the specific scribe class.
 
-    $writer->replace_one_field(filename=>$filename,field=>$field,value=>$value);
+    $scribe->replace_one_field(filename=>$filename,field=>$field,value=>$value);
 
 =cut
 
@@ -532,5 +580,5 @@ Please report any bugs or feature requests to the author.
 
 =cut
 
-1; # End of File::Sticker::Writer
+1; # End of File::Sticker::Scribe
 __END__
