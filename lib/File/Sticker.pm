@@ -245,24 +245,24 @@ sub add_field_to_file {
     {
         return undef;
     }
-    # Never over-write readonly fields!
-    my $readonly_fields = $self->readonly_fields();
-    if (exists $readonly_fields->${field}
-            and defined $readonly_fields->{$field})
-    {
-        return undef;
-    }
-
-    my $old_meta = $self->read_meta(filename=>$filename,read_all=>0);
-    my $derived = $self->derive_values(filename=>$filename,meta=>$old_meta);
-    if ($self->{derive} and defined $derived->{$field})
-    {
-        $value = $derived->{$field};
-    }
-
     my $scribe = $self->_get_scribe($filename);
     if (defined $scribe)
     {
+        # Never over-write readonly fields.
+        my $readonly_fields = $scribe->readonly_fields();
+        if (exists $readonly_fields->{$field}
+                and defined $readonly_fields->{$field})
+        {
+            return undef;
+        }
+
+        my $old_meta = $self->read_meta(filename=>$filename,read_all=>0);
+        my $derived = $self->derive_values(filename=>$filename,meta=>$old_meta);
+        if ($self->{derive} and defined $derived->{$field})
+        {
+            $value = $derived->{$field};
+        }
+
         $scribe->add_field_to_file(
             filename=>$filename,
             field=>$field,
@@ -292,17 +292,17 @@ sub delete_field_from_file {
     {
         return undef;
     }
-    # Never delete readonly fields!
-    my $readonly_fields = $self->readonly_fields();
-    if (exists $readonly_fields->${field}
-            or defined $readonly_fields->{$field})
-    {
-        return undef;
-    }
-
     my $scribe = $self->_get_scribe($filename);
     if (defined $scribe)
     {
+        # Never delete readonly fields.
+        my $readonly_fields = $self->readonly_fields();
+        if (exists $readonly_fields->{$field}
+                or defined $readonly_fields->{$field})
+        {
+            return undef;
+        }
+
         $scribe->delete_field_from_file(
             filename=>$filename,
             field=>$field);
@@ -456,12 +456,13 @@ sub update_db {
             $num_trans = 0;
         }
         my $meta = $self->read_meta(filename=>$filename,read_all=>0);
+        my $scribe = $self->_get_scribe($filename);
 
         # If there are desired fields which are derivable
         # but which are not set in the file itself,
         # derive them, so they can be added to the meta
         my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
-        my $readonly_fields = $self->readonly_fields();
+        my $readonly_fields = $scribe->readonly_fields();
         foreach my $field (@{$self->{field_order}})
         {
             if (!$meta->{$field} and defined $derived->{$field})
@@ -470,7 +471,7 @@ sub update_db {
             }
             # If it is a readonly field, which is also derived,
             # (such as filesize) then it needs to overwrite any old value.
-            if (exists $readonly_fields->${field}
+            if (exists $readonly_fields->{$field}
                     and defined $readonly_fields->{$field}
                     and defined $derived->{$field})
             {
