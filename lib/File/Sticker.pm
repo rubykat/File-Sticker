@@ -245,8 +245,10 @@ sub add_field_to_file {
     {
         return undef;
     }
-    # Never over-write the filesize, though. That's read-only!
-    if ($field eq 'filesize')
+    # Never over-write readonly fields!
+    my $readonly_fields = $self->readonly_fields();
+    if (exists $readonly_fields->${field}
+            and defined $readonly_fields->{$field})
     {
         return undef;
     }
@@ -286,6 +288,18 @@ sub delete_field_from_file {
     my $filename = $args{filename};
     my $field = $args{field};
 
+    if (!-w $filename)
+    {
+        return undef;
+    }
+    # Never delete readonly fields!
+    my $readonly_fields = $self->readonly_fields();
+    if (exists $readonly_fields->${field}
+            or defined $readonly_fields->{$field})
+    {
+        return undef;
+    }
+
     my $scribe = $self->_get_scribe($filename);
     if (defined $scribe)
     {
@@ -310,6 +324,11 @@ sub replace_all_meta {
 
     my $filename = $args{filename};
     my $meta = $args{meta};
+
+    if (!-w $filename)
+    {
+        return undef;
+    }
 
     my $scribe = $self->_get_scribe($filename);
     if (defined $scribe)
@@ -442,15 +461,18 @@ sub update_db {
         # but which are not set in the file itself,
         # derive them, so they can be added to the meta
         my $derived = $self->derive_values(filename=>$filename,meta=>$meta);
+        my $readonly_fields = $self->readonly_fields();
         foreach my $field (@{$self->{field_order}})
         {
-            if (!$meta->{$field} and $derived->{$field})
+            if (!$meta->{$field} and defined $derived->{$field})
             {
                 $meta->{$field} = $derived->{$field};
             }
-            # Unless it is the file size, which must always be taken
-            # from the actual file size
-            if ($field eq 'filesize')
+            # If it is a readonly field, which is also derived,
+            # (such as filesize) then it needs to overwrite any old value.
+            if (exists $readonly_fields->${field}
+                    and defined $readonly_fields->{$field}
+                    and defined $derived->{$field})
             {
                 $meta->{$field} = $derived->{$field};
             }
@@ -483,6 +505,24 @@ sub delete_file_from_db {
 
     return $self->{db}->delete_file_from_db($filename);
 } # delete_file_from_db
+
+=head2 delete_missing_files
+
+Delete from the database the files which no longer exist.
+
+    my $files = $sticker->delete_missing_files();
+
+=cut
+sub delete_missing_files {
+    my $self = shift;
+
+    my $missing_files = $self->missing_files();
+    foreach my $file (@{$missing_files})
+    {
+        $self->delete_file_from_db($file);
+    }
+    return $missing_files;
+} # delete_missing_files
 
 =head2 derive_values
 

@@ -18,6 +18,7 @@ sticker - sticks tags onto files, populates a database with file meta-data
     sticker --missing
     sticker --overlooked file ...
     sticker --removed file ...
+    sticker --correct_missing
     sticker --update file ...
 
     sticker --query query-string ...
@@ -39,6 +40,10 @@ It also deletes from and queries the database.
 =item --add I<string>=I<string>
 
 Set the given field in the given file(s).
+
+=item --correct_missing
+
+Find which files are missing from the filesystem and remove them from the database. 
 
 =item --db_info
 
@@ -104,14 +109,9 @@ Disable database update, only enable queries.
 
 Tell the database that the given file(s) are to be removed from the database.
 (Can't use "delete" because that is used for deleting fields from files).
-This is used for either removing files that no longer exist (see "missing")
-or files which have been mistakenly added that you didn't mean to add.
-It is the latter situation which is why "missing" and "removed" are separate
-options.
-
-If you want to remove missing files in one line, use the following command:
-
-    sticker --removed $(sticker --missing)
+This is used for removing files which have been mistakenly added that you
+did not mean to add. If you want to remove files which no longer exist,
+see I<--correct_missing>.
 
 =item --settings I<type>
 
@@ -352,6 +352,7 @@ sub process_args () {
                'quiet',
                'removed|rm',
                'missing',
+               'correct_missing',
                'overlooked',
                'readonly!',
                'update',
@@ -425,6 +426,11 @@ sub do_stuff {
     if ($opts->{missing})
     {
         my $files = $sticker->missing_files();
+        say join("\n", @{$files});
+    }
+    if ($opts->{correct_missing})
+    {
+        my $files = $sticker->delete_missing_files();
         say join("\n", @{$files});
     }
     if ($opts->{overlooked})
