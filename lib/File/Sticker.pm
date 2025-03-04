@@ -333,9 +333,23 @@ sub replace_all_meta {
     my $scribe = $self->_get_scribe($filename);
     if (defined $scribe)
     {
+        # We don't want to replace readonly fields so take this meta-data
+        # and remove the readonly fields from it so they don't get written to.
+        # But we don't want to alter the passed-in hashref, so make a new hash.
+        my $writable_fields = $scribe->writable_fields();
+        my %new_meta = ();
+        foreach my $field (sort keys %{$meta})
+        {
+            if (exists $writable_fields->{$field}
+                    and defined $writable_fields->{$field})
+            {
+                # A writable field
+                $new_meta{$field} = $meta->{$field};
+            }
+        }
         $scribe->replace_all_meta(
             filename=>$filename,
-            meta=>$meta);
+            meta=>\%new_meta);
     }
 } # replace_all_meta
 

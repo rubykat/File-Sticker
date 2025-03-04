@@ -216,6 +216,7 @@ sub delete_field_from_file {
 =head2 replace_all_meta
 
 Overwrite the existing meta-data with that given.
+THIS DOES NOT CHECK that readonly fields are not being overwritten.
 
 (This supercedes the parent method because we can do it more efficiently this way)
 

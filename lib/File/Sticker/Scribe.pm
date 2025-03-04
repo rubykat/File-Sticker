@@ -84,6 +84,7 @@ sub new {
 =head2 init
 
 Initialize the object.
+Check if all the required parameters are there.
 
     $scribe->init(wanted_fields=>{title=>'TEXT',count=>'NUMBER',tags=>'MULTI'});
 
@@ -98,6 +99,25 @@ sub init {
 	$self->{$key} = $parameters{$key};
     }
     $self->{file_magic} = File::LibMagic->new(follow_symlinks=>1);
+
+    # Set the writable fields from the known and readonly fields
+    if (exists $self->{wanted_fields}
+            and defined $self->{wanted_fields})
+    {
+        my %writable = ();
+        my $known = $self->known_fields();
+        my $readonly = $self->readonly_fields();
+        foreach my $field (keys %{$known})
+        {
+            # If it is Known and Not Readonly, it is writable
+            if (!(exists $readonly->{$field}
+                        and defined $readonly->{$field}))
+            {
+                $writable{$field} = $known->{$field};
+            }
+        }
+        $self->{writable_fields} = \%writable;
+    }
 } # init
 
 =head2 name
@@ -146,7 +166,6 @@ sub priority {
 
 If this scribe can be used for the given file and the wanted_fields,
 then this returns true.
-Returns false if there are no 'wanted_fields'!
 
     if ($scribe->allow($file))
     {
@@ -264,6 +283,20 @@ sub readonly_fields {
     return {filesize=>'NUMBER'};
 } # readonly_fields
 
+=head2 writable_fields
+
+Returns the fields which this scribe knows about, which can be written into.
+
+    my $writable_fields = $scribe->writable_fields();
+
+=cut
+
+sub writable_fields {
+    my $self = shift;
+
+    return $self->{writable_fields};
+} # writable_fields
+
 =head2 read_meta
 
 Read the meta-data from the given file.
@@ -360,10 +393,10 @@ sub replace_all_meta {
     my $filename = $args{filename};
     my $meta = $args{meta};
 
-    # overwrite the known fields
+    # overwrite the known writable fields
     # ignore the unknown fields
-    my $known_fields = $self->known_fields();
-    foreach my $field (sort keys %{$known_fields})
+    my $writable = $self->writable_fields();
+    foreach my $field (sort keys %{$writable})
     {
         if (exists $meta->{$field}
                 and defined $meta->{$field})

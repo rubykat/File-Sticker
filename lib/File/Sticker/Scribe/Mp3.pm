@@ -90,7 +90,6 @@ sub allowed_fields {
 =head2 known_fields
 
 Returns the fields which this scribe knows about.
-This scribe has no limitations.
 
     my $known_fields = $scribe->known_fields();
 
