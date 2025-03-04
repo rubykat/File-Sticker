@@ -26,6 +26,7 @@ use Carp;
 use common::sense;
 use File::LibMagic;
 use Image::ExifTool qw(:Public);
+require Image::ExifTool::XMP;
 use YAML::Any;
 use File::Spec;
 use List::MoreUtils qw(uniq);
@@ -43,6 +44,43 @@ Used for debugging info
 sub whoami  { ( caller(1) )[3] }
 
 =head1 METHODS
+
+=head2 init
+
+Initialize the object.
+
+    $scribe->init(wanted_fields=>{title=>'TEXT',count=>'NUMBER',tags=>'MULTI'});
+
+=cut
+
+sub init {
+    my $self = shift;
+    my %parameters = @_;
+
+    $self->SUPER::init(%parameters);
+
+    # Set the user-defined fields for EXIF
+    %Image::ExifTool::UserDefined::sticker = (
+        GROUPS => { 0 => 'XMP', 1 => 'XMP-sticker', 2 => 'Image' },
+        NAMESPACE => { 'sticker' => 'http://ns.katspace.org/sticker/1.0/' },
+        WRITABLE => 'string',
+        # To maximize flexibility, this is going to be a plain string
+        # which we will populate with YAML data.
+        FreeFields => { },
+    );
+
+    %Image::ExifTool::UserDefined = (
+        # new XMP namespaces (ie. XMP-xxx) must be added to the Main XMP table:
+        'Image::ExifTool::XMP::Main' => {
+            sticker => {
+                SubDirectory => {
+                    TagTable => 'Image::ExifTool::UserDefined::sticker'
+                },
+            },
+        }
+    );
+    Image::ExifTool::XMP::RegisterNamespace(\%Image::ExifTool::UserDefined::sticker);
+} # init
 
 =head2 priority
 
@@ -263,11 +301,35 @@ Title
 
     # -------------------------------------------------
     # Freeform Fields
-    # These are stored as YAML data in the XMP:Description field.
-    # They used to be stored in the ImageDescription field then
-    # the UserComment field, so they need to be checked too.
+    # These are stored as YAML data in the XMP-sticker:FreeFields field.
+    # They used to be stored in the XMP:Description field,
+    # before then the ImageDescription field, before then the UserComment field
+    # so they need to be checked too.
     # -------------------------------------------------
-    if (exists $info->{Description}
+    if (exists $info->{FreeFields}
+            and $info->{FreeFields}
+            and $info->{FreeFields} =~ /^---/)
+    {
+        say STDERR sprintf("FreeFields='%s'", $info->{FreeFields}) if $self->{verbose} > 2;
+        my $data;
+        eval {$data = Load($info->{FreeFields});};
+        if ($@)
+        {
+            warn __PACKAGE__, " Load of YAML data failed: $@";
+        }
+        elsif (!$data)
+        {
+            warn __PACKAGE__, " no legal YAML" if $self->{verbose} > 2;
+        }
+        else # okay
+        {
+            foreach my $field (sort keys %{$data})
+            {
+                $meta{$field} = $data->{$field};
+            }
+        }
+    }
+    elsif (exists $info->{Description}
             and $info->{Description}
             and $info->{Description} =~ /^---/)
     {
@@ -401,9 +463,11 @@ sub replace_one_field {
         # ImageDescription) with what it considers the description
         # when saving a file.
         #
-        # So now I use the XMP:Description (Description) field for the
+        # So then I used the XMP:Description (Description) field for the
         # freeform data, because GIMP neither reads nor overwrites that.
-        # WHEW!
+        # 
+        # But then I discovered you could DEFINE YOUR OWN fields in EXIF,
+        # so I defined XMP-sticker:FreeFields to put my freeform YAML data into.
 
         # Before the decription is written, the freeform data
         # needs to be converted to its new home.
@@ -570,7 +634,7 @@ sub _get_the_real_file {
 
 =head2 _read_freeform_data
 
-Read the freeform data as YAML data from the XMP:Description field.
+Read the freeform data as YAML data from the XMP-sticker:FreeFields field.
  
     my $ydata = $self->_read_freeform_data(exif=>$exif);
 
@@ -586,8 +650,8 @@ sub _read_freeform_data {
 
     my $ydata;
     my $et = $args{exif};
-    my $ystring = $et->GetValue('Description');
-    $ystring = $et->GetNewValue('Description') if !$ystring;
+    my $ystring = $et->GetValue('FreeFields');
+    $ystring = $et->GetNewValue('FreeFields') if !$ystring;
     say STDERR "ystring=$ystring" if $self->{verbose} > 2;
     if ($ystring and $ystring =~ /^---/) # YAML data needs prefix
     {
@@ -607,7 +671,7 @@ sub _read_freeform_data {
 
 =head2 _write_freeform_data
 
-Write the freeform data as YAML data into the Description field
+Write the freeform data as YAML data into the XML-sticker:FreeFields field
 This overwrites whatever is there, it does not check.
     
     $self->_write_freeform_data(newdata=>\%newdata,exif=>$exif);
@@ -635,14 +699,14 @@ sub _write_freeform_data {
     }
     my $ystring = Dump($newdata);
     say STDERR "ystring=$ystring" if $self->{verbose} > 2;
-    my $success = $et->SetNewValue('Description', $ystring);
+    my $success = $et->SetNewValue('XMP-sticker:FreeFields', $ystring);
     return $success;
 } # _write_freeform_data
 
 =head2 _convert_freeform_data
 
-Convert the freeform data so that it is placed into the Description field
-rather than the UserComment or ImageDescription field.
+Convert the freeform data so that it is placed into the XMP-sticker:FreeFields
+field rather than the XMP:Description, UserComment or ImageDescription field.
  
     $self->_convert_freeform_data(exif=>$exif);
 
@@ -655,10 +719,10 @@ sub _convert_freeform_data {
 
     my $et = $args{exif};
     # Check if it needs conversion at all.
-    # If the XMP:Description field is not empty
+    # If the XMP-sticker:FreeFields field is not empty
     # and contains YAML data, then nothing needs to be done.
-    my $ystring = $et->GetValue('Description');
-    $ystring = $et->GetNewValue('Description') if !$ystring;
+    my $ystring = $et->GetValue('XMP-sticker:FreeFields');
+    $ystring = $et->GetNewValue('XMP-sticker:FreeFields') if !$ystring;
     if ($ystring and $ystring =~ /^---/) # Assume YAML data
     {
         # no conversion needed
@@ -667,18 +731,25 @@ sub _convert_freeform_data {
 
     # ------------------------------------
     # Conversion needed
-    # Read from ImageDescription, write into XMP:Description
+    # Read from XMP:Description, write into XMP-sticker:FreeFields
+    # Otherwise read from ImageDescription. 
     # The YAML data might be in UserComment instead if old.
     # ------------------------------------
-    $ystring = $et->GetValue('ImageDescription') if !$ystring;
-    $ystring = $et->GetNewValue('ImageDescription') if !$ystring;
-    my $ydata;
-    my $success = 0;
-    if (!$ystring or $ystring =~ /^---/) # Try UserComment
+    $ystring = $et->GetValue('Description');
+    $ystring = $et->GetNewValue('Description') if !$ystring;
+    if (!$ystring or $ystring !~ /^---/) # Try ImageDescription
     {
-        $ystring = $et->GetValue('UserComment') if !$ystring;
+        $ystring = $et->GetValue('ImageDescription');
+        $ystring = $et->GetNewValue('ImageDescription') if !$ystring;
+    }
+    if (!$ystring or $ystring !~ /^---/) # Try UserComment
+    {
+        $ystring = $et->GetValue('UserComment');
         $ystring = $et->GetNewValue('UserComment') if !$ystring;
     }
+
+    my $ydata;
+    my $success = 0;
     if ($ystring and $ystring =~ /^---/) # Probably YAML data
     {
         # Check if the YAML data is valid
@@ -693,9 +764,12 @@ sub _convert_freeform_data {
         }
         else # data is okay
         {
-            $success = $et->SetNewValue('Description', $ystring);
+            $success = $et->SetNewValue('XMP-sticker:FreeFields', $ystring);
             if ($success)
             {
+                # Clear out the XMP:Description field
+                $et->SetNewValue('XMP:Description');
+
                 # Put the description, if there is one,
                 # into the UserComment, ImageDescription
                 my $desc = $et->GetValue('Comment');
@@ -720,7 +794,7 @@ sub _convert_freeform_data {
         # Put some empty data in there.
         my %newdata = ();
         my $nystring = Dump(\%newdata);
-        $success = $et->SetNewValue('Description', $nystring);
+        $success = $et->SetNewValue('XMP-sticker:FreeFields', $nystring);
     }
 
     return $success;

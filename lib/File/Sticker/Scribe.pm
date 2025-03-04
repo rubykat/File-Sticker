@@ -84,7 +84,6 @@ sub new {
 =head2 init
 
 Initialize the object.
-Set which fields you are interested in ('wanted_fields').
 
     $scribe->init(wanted_fields=>{title=>'TEXT',count=>'NUMBER',tags=>'MULTI'});
 
