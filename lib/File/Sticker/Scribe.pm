@@ -255,8 +255,6 @@ sub known_fields {
 Returns the fields which this scribe knows about, which can't be overwritten,
 but are allowed to be "wanted" fields. Things like file-size etc.
 
-This must be overridden by the specific scribe class.
-
     my $readonly_fields = $scribe->readonly_fields();
 
 =cut
@@ -264,7 +262,7 @@ This must be overridden by the specific scribe class.
 sub readonly_fields {
     my $self = shift;
 
-    return undef;
+    return {filesize=>'NUMBER'};
 } # readonly_fields
 
 =head2 read_meta

@@ -109,21 +109,6 @@ sub known_fields {
     return {};
 } # known_fields
 
-=head2 readonly_fields
-
-Returns the fields which this scribe knows about, which can't be overwritten,
-but are allowed to be "wanted" fields. Things like file-size etc.
-
-    my $readonly_fields = $scribe->readonly_fields();
-
-=cut
-
-sub readonly_fields {
-    my $self = shift;
-
-    return {filesize=>'NUMBER'};
-} # readonly_fields
-
 =head2 read_meta
 
 Read the meta-data from the given file.

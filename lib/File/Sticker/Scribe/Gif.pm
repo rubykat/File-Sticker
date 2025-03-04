@@ -108,7 +108,7 @@ sub readonly_fields {
 
     return {
         date=>'TEXT',
-        filesize=>'TEXT',
+        filesize=>'NUMBER',
         imagesize=>'TEXT',
         imageheight=>'NUMBER',
         imagewidth=>'NUMBER',

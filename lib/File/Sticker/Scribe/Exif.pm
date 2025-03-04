@@ -116,6 +116,7 @@ sub readonly_fields {
         date=>'TEXT',
         copyright=>'TEXT',
         flash=>'TEXT',
+        filesize=>'NUMBER',
         imagesize=>'TEXT',
         imageheight=>'NUMBER',
         imagewidth=>'NUMBER',
