@@ -26,12 +26,36 @@ use Carp;
 use common::sense;
 use File::LibMagic;
 use Image::ExifTool qw(:Public);
-require Image::ExifTool::XMP;
+use Image::ExifTool::XMP;
 use YAML::Any;
 use File::Spec;
 use List::MoreUtils qw(uniq);
 
 use parent qw(File::Sticker::Scribe);
+
+BEGIN {
+    # Set the user-defined fields for EXIF
+    %Image::ExifTool::UserDefined::sticker = (
+        GROUPS => { 0 => 'XMP', 1 => 'XMP-sticker', 2 => 'Image' },
+        NAMESPACE => { 'sticker' => 'http://ns.katspace.org/sticker/1.0/' },
+        WRITABLE => 'string',
+        # To maximize flexibility, this is going to be a plain string
+        # which we will populate with YAML data.
+        FreeFields => { },
+    );
+
+    %Image::ExifTool::UserDefined = (
+        # new XMP namespaces (ie. XMP-xxx) must be added to the Main XMP table:
+        'Image::ExifTool::XMP::Main' => {
+            sticker => {
+                SubDirectory => {
+                    TagTable => 'Image::ExifTool::UserDefined::sticker'
+                },
+            },
+        }
+    );
+    Image::ExifTool::XMP::RegisterNamespace(\%Image::ExifTool::UserDefined::sticker);
+}
 
 # FOR DEBUGGING
 =head1 DEBUGGING
@@ -59,27 +83,6 @@ sub init {
 
     $self->SUPER::init(%parameters);
 
-    # Set the user-defined fields for EXIF
-    %Image::ExifTool::UserDefined::sticker = (
-        GROUPS => { 0 => 'XMP', 1 => 'XMP-sticker', 2 => 'Image' },
-        NAMESPACE => { 'sticker' => 'http://ns.katspace.org/sticker/1.0/' },
-        WRITABLE => 'string',
-        # To maximize flexibility, this is going to be a plain string
-        # which we will populate with YAML data.
-        FreeFields => { },
-    );
-
-    %Image::ExifTool::UserDefined = (
-        # new XMP namespaces (ie. XMP-xxx) must be added to the Main XMP table:
-        'Image::ExifTool::XMP::Main' => {
-            sticker => {
-                SubDirectory => {
-                    TagTable => 'Image::ExifTool::UserDefined::sticker'
-                },
-            },
-        }
-    );
-    Image::ExifTool::XMP::RegisterNamespace(\%Image::ExifTool::UserDefined::sticker);
 } # init
 
 =head2 priority
