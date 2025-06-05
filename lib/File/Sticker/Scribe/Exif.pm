@@ -206,15 +206,26 @@ sub read_meta {
     $meta{copyright} = $copyright if $copyright;
 
     # Alt text!
-    my $alttext = '';
+    my $alt_text = '';
     foreach my $field (qw(AltTextAccessibility))
     {
-        if (exists $info->{$field} and $info->{$field} and !$alttext)
+        if (exists $info->{$field} and $info->{$field} and !$alt_text)
         {
-            $alttext = $info->{$field};
+            $alt_text = $info->{$field};
         }
     }
-    $meta{alttext} = $alttext if $alttext;
+    $meta{alt_text} = $alt_text if $alt_text;
+
+    # CreateDate is going to be treated as a separate field
+    my $create_date = '';
+    foreach my $field (qw(CreateDate))
+    {
+        if (exists $info->{$field} and $info->{$field} and !$create_date)
+        {
+            $create_date = $info->{$field};
+        }
+    }
+    $meta{create_date} = $create_date if $create_date;
 
     # There are multiple fields which could be used as a file date.
     # Check through them until you find a non-empty one.
@@ -280,7 +291,6 @@ Megapixels
 PageCount
 Location
 Title
-CreateDate
 ))
     {
         if (exists $info->{$field} and $info->{$field})
@@ -435,11 +445,11 @@ sub replace_one_field {
     {
         $success = $et->SetNewValue('Location', $value);
     }
-    elsif ($field eq 'createdate')
+    elsif ($field eq 'create_date')
     {
         $success = $et->SetNewValue('CreateDate', $value);
     }
-    elsif ($field eq 'alttext')
+    elsif ($field eq 'alt_text')
     {
         $success = $et->SetNewValue('AltTextAccessibility', $value);
     }
