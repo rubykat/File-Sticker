@@ -337,7 +337,6 @@ sub process_args () {
     $op->getoptions($opts,
 	       'verbose+',
 	       'manpage',
-	       'manpage',
 	       'dbname=s',
 	       'topdir=s',
                'primary_table|table=s',
