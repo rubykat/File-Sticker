@@ -100,6 +100,24 @@ sub init {
     }
     $self->{file_magic} = File::LibMagic->new(follow_symlinks=>1);
 
+    # If we want to read all, then create wanted fields if we don't have them
+    if ($self->{read_all}
+            and !(exists $self->{wanted_fields}
+                and defined $self->{wanted_fields})
+    )
+    {
+        $self->{wanted_fields} = {};
+        my $known = $self->known_fields();
+        foreach my $field (keys %{$known})
+        {
+            $self->{wanted_fields}->{$field} = $known->{$field};
+        }
+        my $readonly = $self->readonly_fields();
+        foreach my $field (keys %{$readonly})
+        {
+            $self->{wanted_fields}->{$field} = $readonly->{$field};
+        }
+    }
     # Set the writable fields from the known and readonly fields
     if (exists $self->{wanted_fields}
             and defined $self->{wanted_fields})
