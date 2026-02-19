@@ -85,22 +85,46 @@ sub derive {
 
     if ($self->{topdir})
     {
-        $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
-        my $rel_parent = $fp->parent->relative($self->{topdir})->stringify;
+        # the topdir information may be an array
+        if (ref $self->{topdir} eq 'ARRAY')
+        {
+            my @topdirs = @{$self->{topdir}};
+            for (my $i=0; $i < @topdirs and !$meta->{relpath}; $i++)
+            {
+                my $td = $topdirs[$i];
+                # first check the given filename against this topdir
+                if ($filename =~ m!^${td}!)
+                {
+                    $meta->{relpath} = $fp->relative($td)->stringify;
+                }
+                # then check the real absolute filename against this topdir
+                elsif ($meta->{file} =~ m!^${td}!)
+                {
+                    $meta->{relpath} = path($meta->{file})->relative($td)->stringify;
+                }
+            }
+        }
+        else
+        {
+            $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
+        }
+        my $rel_parent = path($meta->{relpath})->parent->stringify;
         if ($meta->{relpath} =~ /\.\./) # we got a problem
         {
-            $meta->{relpath} =~ s!\.\./!!g;
-            $rel_parent =~ s!\.\./!!g;
+            $meta->{relpath} = '';
+            $rel_parent = '';
         }
 
         # Check if a thumbnail exists
         # It could be a jpg or a png
         # Note that if the file itself is a jpg or png, we can use it as the thumbnail
-        if (-r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.jpg')
+        if ($rel_parent and
+            -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.jpg')
         {
             $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.jpg'
         }
-        elsif (-r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.png')
+        elsif ($rel_parent
+                and -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.png')
         {
             $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.png'
         }
@@ -114,15 +138,18 @@ sub derive {
         # this is because that's how it is *grouped* together with other files, yes?
         # But use the directory relative to the "top" directory, the first two or three parts of it.
 
-        my @bits = split(/\//, $rel_parent);
-        splice(@bits,3);
-        $meta->{grouping} = join(' ', @bits);
-
-        # also make "section" fields, which are each separate bit of the "grouping"
-        for (my $i=0; $i < @bits; $i++)
+        if ($rel_parent)
         {
-            my $id = $i + 1;
-            $meta->{"section${id}"} = $bits[$i];
+            my @bits = split(/\//, $rel_parent);
+            splice(@bits,3);
+            $meta->{grouping} = join(' ', @bits);
+
+            # also make "section" fields, which are each separate bit of the "grouping"
+            for (my $i=0; $i < @bits; $i++)
+            {
+                my $id = $i + 1;
+                $meta->{"section${id}"} = $bits[$i];
+            }
         }
     }
     if (-r $filename)
