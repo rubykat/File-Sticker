@@ -83,6 +83,8 @@ sub derive {
         $meta->{ext} = $1;
     }
 
+    # If we have a topdir, we want various path information
+    # relative to that top dir.
     if ($self->{topdir})
     {
         # the topdir information may be an array
@@ -108,29 +110,41 @@ sub derive {
         {
             $meta->{relpath} = $fp->relative($self->{topdir})->stringify;
         }
-        my $rel_parent = path($meta->{relpath})->parent->stringify;
-        if ($meta->{relpath} =~ /\.\./) # we got a problem
+        my $rel_parent = '';
+        if ($meta->{relpath}) # we might not have been able to find the relpath
         {
-            $meta->{relpath} = '';
-            $rel_parent = '';
+            # Find the parent of this relpath
+            my $rpp = path($meta->{relpath})->parent;
+            $rel_parent = $rpp->stringify;
+
+            # Check if the relpath parent makes sense
+            if ($meta->{relpath} =~ /\.\./) # we got a problem
+            {
+                $meta->{relpath} = '';
+                $rel_parent = '';
+            }
         }
 
-        # Check if a thumbnail exists
-        # It could be a jpg or a png
-        # Note that if the file itself is a jpg or png, we can use it as the thumbnail
-        if ($rel_parent and
-            -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.jpg')
+        # If we still have a relpath, set other things derived from it
+        if ($meta->{relpath})
         {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.jpg'
-        }
-        elsif ($rel_parent
-                and -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.png')
-        {
-            $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.png'
-        }
-        elsif ($meta->{ext} =~ /jpg|png|gif/)
-        {
-            $meta->{thumbnail} = $meta->{relpath};
+            # IF we have a relpath, check if a thumbnail exists
+            # It could be a jpg or a png
+            # Note that if the file itself is a jpg or png, we can use it as the thumbnail
+            if ($rel_parent and
+                -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.jpg')
+            {
+                $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.jpg'
+            }
+            elsif ($rel_parent
+                    and -r $fp->parent . '/.thumbnails/' . $meta->{id_name} . '.png')
+            {
+                $meta->{thumbnail} = $rel_parent . '/.thumbnails/' . $meta->{id_name} . '.png'
+            }
+            elsif ($meta->{ext} =~ /jpg|png|gif/)
+            {
+                $meta->{thumbnail} = $meta->{relpath};
+            }
         }
 
         # Make this grouping stuff simple:
