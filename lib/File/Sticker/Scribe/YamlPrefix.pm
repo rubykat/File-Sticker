@@ -78,6 +78,7 @@ sub allowed_file {
             and $ft->{mime_type} =~ m{^text/plain}
             and $file !~ /\.yml$/)
     {
+        say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;

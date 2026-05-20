@@ -70,6 +70,7 @@ sub allowed_file {
     my $ft = $self->{file_magic}->info_from_filename($file);
     if ($ft->{mime_type} eq 'image/gif')
     {
+        say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;

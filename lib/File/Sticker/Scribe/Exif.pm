@@ -74,9 +74,9 @@ sub priority {
 =head2 allowed_file
 
 If this scribe can be used for the given file, then this returns true.
-File must be one of: PDF or an image which is not a GIF.
+File must be one of: PDF, EPUB, or an image which is not a GIF.
 (GIF files need to be treated separately)
-(ExifTool can't write to EPUB)
+(Even if ExifTool can't write to EPUB, it can still read it)
 
 =cut
 
@@ -87,9 +87,10 @@ sub allowed_file {
 
     $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if ($ft->{mime_type} =~ /(image|pdf)/
+    if ($ft->{mime_type} =~ /(image|pdf|epub)/
             and $ft->{mime_type} !~ /gif/)
     {
+        say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
     }
     return 0;
@@ -169,7 +170,7 @@ sub read_meta {
     # There are multiple fields which could be used as a file "description".
     # Check through them until you find a non-empty one.
     my $description = '';
-    foreach my $field (qw(Caption-Abstract Comment UserComment ImageDescription Description))
+    foreach my $field (qw(Caption-Abstract Comment UserComment ImageDescription Description MetadataDescription))
     {
         if (exists $info->{$field}
                 and $info->{$field}
@@ -181,10 +182,11 @@ sub read_meta {
         }
     }
     $meta{description} = $description if $description;
+
     # There are multiple fields which could be used as a file content creator.
     # Check through them until you find a non-empty one.
     my $creator = '';
-    foreach my $field (qw(Author Artist Creator))
+    foreach my $field (qw(Author Artist Creator MetadataCreator))
     {
         if (exists $info->{$field} and $info->{$field} and !$creator)
         {
@@ -215,6 +217,19 @@ sub read_meta {
         }
     }
     $meta{alt_text} = $alt_text if $alt_text;
+
+    # The URL could be from the Source or the Identifier
+    # Check through them until you find a non-empty one which contains an actual URL
+    foreach my $field (qw(Source Identifier MetadataIdentifier))
+    {
+        if (exists $info->{$field}
+                and $info->{$field}
+                and $info->{$field} =~ /^http/
+                and !exists $meta{url})
+        {
+            $meta{url} = $info->{$field};
+        }
+    }
 
     # CreateDate is going to be treated as a separate field
     my $create_date = '';
