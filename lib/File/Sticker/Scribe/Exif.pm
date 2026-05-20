@@ -77,9 +77,6 @@ If this scribe can be used for the given file, then this returns true.
 File must be one of: PDF or an image which is not a GIF.
 (GIF files need to be treated separately)
 (EPUB files need to be treated separately)
-(Even if ExifTool can't write to EPUB, it can still read it;
-however, it's being given a type of application/zip, so we will
-also have to check the file extension.)
 
 =cut
 
@@ -90,9 +87,7 @@ sub allowed_file {
 
     $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if (($ft->{mime_type} =~ /(image|pdf)/ and $ft->{mime_type} !~ /gif/)
-            or ($ft->{mime_type} =~ m(application/zip) and $file =~ /\.epub$/)
-    )
+    if ($ft->{mime_type} =~ /(image|pdf)/ and $ft->{mime_type} !~ /gif/)
     {
         say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
@@ -277,7 +272,7 @@ sub read_meta {
                 $val =~ s/\s--\s/,/g;
                 @these_tags = split(/,\s?/, $val);
             }
-            else
+            else # comma-separated
             {
                 @these_tags = split(/,\s*/, $val);
             }
