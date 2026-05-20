@@ -200,7 +200,6 @@ sub allow {
     my $okay = $self->allowed_file($file);
     if ($okay) # okay so far
     {
-        say STDERR 'Scribe ' . $self->name() . ' allows filetype of ' . $file if $self->{verbose} > 1;
         $okay = $self->allowed_fields();
     }
     return $okay;

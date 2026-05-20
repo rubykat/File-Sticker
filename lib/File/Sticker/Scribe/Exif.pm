@@ -74,9 +74,12 @@ sub priority {
 =head2 allowed_file
 
 If this scribe can be used for the given file, then this returns true.
-File must be one of: PDF, EPUB, or an image which is not a GIF.
+File must be one of: PDF or an image which is not a GIF.
 (GIF files need to be treated separately)
-(Even if ExifTool can't write to EPUB, it can still read it)
+(EPUB files need to be treated separately)
+(Even if ExifTool can't write to EPUB, it can still read it;
+however, it's being given a type of application/zip, so we will
+also have to check the file extension.)
 
 =cut
 
@@ -87,8 +90,9 @@ sub allowed_file {
 
     $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
-    if ($ft->{mime_type} =~ /(image|pdf|epub)/
-            and $ft->{mime_type} !~ /gif/)
+    if (($ft->{mime_type} =~ /(image|pdf)/ and $ft->{mime_type} !~ /gif/)
+            or ($ft->{mime_type} =~ m(application/zip) and $file =~ /\.epub$/)
+    )
     {
         say STDERR 'Scribe ' . $self->name() . ' allows filetype ' . $ft->{mime_type} . ' of ' . $file if $self->{verbose} > 1;
         return 1;
