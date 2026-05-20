@@ -155,15 +155,18 @@ sub derive {
         if ($rel_parent)
         {
             my @bits = split(/\//, $rel_parent);
-            splice(@bits,3);
-            $meta->{grouping} = join(' ', @bits);
 
-            # also make "section" fields, which are each separate bit of the "grouping"
+            # First make "section" fields, which are each separate bit of the entire rel_parent
             for (my $i=0; $i < @bits; $i++)
             {
                 my $id = $i + 1;
                 $meta->{"section${id}"} = $bits[$i];
             }
+
+            # Then limit this to the top three for the grouping
+            splice(@bits,3);
+            $meta->{grouping} = join(' ', @bits);
+
         }
     }
     if (-r $filename)
