@@ -197,7 +197,7 @@ sub read_meta {
     # There are multiple fields which could be used as a copyright notice.
     # Check through them until you find a non-empty one.
     my $copyright = '';
-    foreach my $field (qw(License Rights))
+    foreach my $field (qw(License Rights MetadataRights))
     {
         if (exists $info->{$field} and $info->{$field} and !$copyright)
         {
@@ -232,7 +232,7 @@ sub read_meta {
 
     # CreateDate is going to be treated as a separate field
     my $create_date = '';
-    foreach my $field (qw(CreateDate))
+    foreach my $field (qw(CreateDate MetadataCreateDate))
     {
         if (exists $info->{$field} and $info->{$field} and !$create_date)
         {
@@ -244,7 +244,7 @@ sub read_meta {
     # There are multiple fields which could be used as a file date.
     # Check through them until you find a non-empty one.
     my $date = '';
-    foreach my $field (qw(DateTimeOriginal Date PublishedDate PublicationDate))
+    foreach my $field (qw(DateTimeOriginal Date PublishedDate PublicationDate MetadataPublishedDate))
     {
         if (exists $info->{$field} and $info->{$field} and !$date)
         {
@@ -257,7 +257,7 @@ sub read_meta {
     # Combine the tag-like fields together.
     # Preserve the order and check for dupicates later with uniq
     my @tags = ();
-    foreach my $field (qw(Keywords Subject))
+    foreach my $field (qw(Keywords Subject MetadataSubject))
     {
         if (exists $info->{$field} and $info->{$field})
         {
