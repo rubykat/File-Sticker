@@ -244,7 +244,7 @@ sub read_meta {
     # There are multiple fields which could be used as a file date.
     # Check through them until you find a non-empty one.
     my $date = '';
-    foreach my $field (qw(DateTimeOriginal Date PublishedDate PublicationDate MetadataPublishedDate))
+    foreach my $field (qw(DateTimeOriginal Date PublishedDate PublicationDate))
     {
         if (exists $info->{$field} and $info->{$field} and !$date)
         {
@@ -256,10 +256,13 @@ sub read_meta {
     # Use a consistent naming for tag fields.
     # Combine the tag-like fields together.
     # Preserve the order and check for dupicates later with uniq
+    # NOTE: a field may appear more than once with a number appended!
+    # So we need to check all the keys against a regex.
     my @tags = ();
-    foreach my $field (qw(Keywords Subject MetadataSubject))
+    foreach my $field (sort keys %{$info})
     {
-        if (exists $info->{$field} and $info->{$field})
+        if ($field =~ /(Keywords|Subject)/
+                and $info->{$field})
         {
             my $val = $info->{$field};
             my @these_tags;
