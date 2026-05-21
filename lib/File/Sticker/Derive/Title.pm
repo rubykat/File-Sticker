@@ -61,7 +61,7 @@ This is expected to update the given meta-data.
 sub derive {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};

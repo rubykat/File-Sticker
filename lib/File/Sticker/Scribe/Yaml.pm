@@ -64,7 +64,7 @@ If the file exists and is empty, that's okay too.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     if ($file !~ /\.yml$/)
     {
@@ -145,7 +145,7 @@ Read the meta-data from the given file.
 sub read_meta {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my ($info) = LoadFile($filename);
     my %meta = ();
@@ -211,7 +211,7 @@ This does no checking for multi-valued fields, it just deletes the whole thing.
 sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -234,7 +234,7 @@ Overwrite the existing meta-data with that given.
 sub replace_all_meta {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $meta = $args{meta};
@@ -257,7 +257,7 @@ Overwrite the given field. This does no checking.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};

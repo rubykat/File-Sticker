@@ -63,7 +63,7 @@ I don't know how to test for that, so I'll just assume "yes".
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     if (-r $file)
     {
@@ -120,7 +120,7 @@ Read the meta-data from the given file.
 sub read_meta {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my %meta = ();
     foreach my $key (listfattr($filename))
@@ -166,7 +166,7 @@ For multi-value fields, it removes ALL the values.
 sub delete_field_from_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
@@ -218,7 +218,7 @@ This does no checking for multi-value fields.
 sub replace_one_field {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     my $field = $args{field};
