@@ -83,7 +83,7 @@ File must be one of: PDF or an image which is not a GIF.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     $file = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($file);
@@ -150,7 +150,7 @@ Read the meta-data from the given file.
 sub read_meta {
     my $self = shift;
     my $filename = shift;
-    say STDERR whoami(), " filename=$filename" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     $filename = $self->_get_the_real_file(filename=>$filename);
     my $exif_options = {DateFormat => "%Y-%m-%d %H:%M:%S"};
@@ -613,7 +613,7 @@ If the file is a soft link, look for the file it is pointing to
 sub _get_the_real_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     if (-d $filename) # is a directory, look for a cover file
