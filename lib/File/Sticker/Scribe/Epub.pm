@@ -63,7 +63,7 @@ File must be an EPUB file.
 sub allowed_file {
     my $self = shift;
     my $file = shift;
-    say STDERR whoami(), " file=$file" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $realfile = $self->_get_the_real_file(filename=>$file);
     my $ft = $self->{file_magic}->info_from_filename($realfile);
@@ -92,7 +92,7 @@ If the file is a soft link, look for the file it is pointing to
 sub _get_the_real_file {
     my $self = shift;
     my %args = @_;
-    say STDERR whoami(), " filename=$args{filename}" if $self->{verbose} > 2;
+    say STDERR whoami() if $self->{verbose} > 2;
 
     my $filename = $args{filename};
     # ExifTool has a wicked habit of replacing soft-linked files with the
